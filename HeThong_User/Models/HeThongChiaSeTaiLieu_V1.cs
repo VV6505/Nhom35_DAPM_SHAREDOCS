@@ -54,8 +54,21 @@ public partial class HeThongChiaSeTaiLieu_V1 : DbContext
     public virtual DbSet<VaiTro> VaiTros { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+<<<<<<< Updated upstream
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=localhost\\KIEUOANH;Database=HeThongChiaSeTaiLieu_V1;Trusted_Connection=True;TrustServerCertificate=True;");
+=======
+    {
+        // Connection string được cấu hình trong Program.cs thông qua Dependency Injection
+        // Không cần hardcode ở đây
+        if (!optionsBuilder.IsConfigured)
+        {
+            // Chỉ sử dụng connection string mặc định nếu chưa được cấu hình
+            // (trường hợp scaffold hoặc migration)
+            optionsBuilder.UseSqlServer("Data Source=DESKTOP-991F2DU\\KIEUOANH;Initial Catalog=SHAREDOCS;Integrated Security=True;TrustServerCertificate=True;Connection Timeout=30");
+        }
+    }
+>>>>>>> Stashed changes
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

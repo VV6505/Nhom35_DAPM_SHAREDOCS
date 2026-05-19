@@ -173,6 +173,140 @@ CREATE TABLE BaoCaoViPham (
 GO
 
 -----------------------------------------------------------
+-- TRIGGER TỰ ĐỘNG GỬI THÔNG BÁO KHI DUYỆT/TỪ CHỐI TÀI LIỆU
+-----------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_ThongBao_TaiLieu;
+GO
+
+CREATE TRIGGER trg_ThongBao_TaiLieu
+ON TaiLieu
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @MaxMaTB INT;
+    
+    -- Lấy mã thông báo lớn nhất hiện tại
+    SELECT @MaxMaTB = ISNULL(MAX(CAST(SUBSTRING(MaTB, 3, 3) AS INT)), 0) FROM ThongBao;
+    
+    -- Xử lý khi tài liệu được DUYỆT (chuyển sang trạng thái "Đã duyệt")
+    INSERT INTO ThongBao (MaTB, MaNguoiNhan, TieuDe, NoiDung, LoaiThongBao, TrangThai, NgayTao, MaTL)
+    SELECT 
+        'TB' + RIGHT('000' + CAST(@MaxMaTB + ROW_NUMBER() OVER (ORDER BY i.MaTaiLieu) AS VARCHAR(3)), 3),
+        i.MaNguoiDang,
+        N'Tài liệu đã được duyệt',
+        N'Chúc mừng! Tài liệu "' + i.TieuDe + N'" của bạn đã được duyệt và hiển thị công khai trên hệ thống.',
+        N'Duyệt tài liệu',
+        N'Chưa đọc',
+        GETDATE(),
+        i.MaTaiLieu
+    FROM inserted i
+    LEFT JOIN deleted d ON i.MaTaiLieu = d.MaTaiLieu
+    WHERE i.TrangThaiDuyet = N'Đã duyệt' 
+        AND (d.MaTaiLieu IS NULL OR d.TrangThaiDuyet != N'Đã duyệt');
+    
+    -- Cập nhật lại @MaxMaTB sau khi insert thông báo duyệt
+    SELECT @MaxMaTB = ISNULL(MAX(CAST(SUBSTRING(MaTB, 3, 3) AS INT)), 0) FROM ThongBao;
+    
+    -- Xử lý khi tài liệu bị TỪ CHỐI
+    INSERT INTO ThongBao (MaTB, MaNguoiNhan, TieuDe, NoiDung, LoaiThongBao, TrangThai, NgayTao, MaTL)
+    SELECT 
+        'TB' + RIGHT('000' + CAST(@MaxMaTB + ROW_NUMBER() OVER (ORDER BY i.MaTaiLieu) AS VARCHAR(3)), 3),
+        i.MaNguoiDang,
+        N'Tài liệu đã bị từ chối',
+        N'Tài liệu "' + i.TieuDe + N'" của bạn đã bị từ chối. Lý do: ' + ISNULL(i.LyDoTuChoi, N'Không có lý do cụ thể.'),
+        N'Từ chối tài liệu',
+        N'Chưa đọc',
+        GETDATE(),
+        i.MaTaiLieu
+    FROM inserted i
+    LEFT JOIN deleted d ON i.MaTaiLieu = d.MaTaiLieu
+    WHERE i.TrangThaiDuyet = N'Từ chối' 
+        AND (d.MaTaiLieu IS NULL OR d.TrangThaiDuyet != N'Từ chối');
+    
+    -- Cập nhật lại @MaxMaTB sau khi insert thông báo từ chối
+    SELECT @MaxMaTB = ISNULL(MAX(CAST(SUBSTRING(MaTB, 3, 3) AS INT)), 0) FROM ThongBao;
+    
+    -- Xử lý khi tài liệu được ĐĂNG TẢI THÀNH CÔNG (INSERT mới)
+    INSERT INTO ThongBao (MaTB, MaNguoiNhan, TieuDe, NoiDung, LoaiThongBao, TrangThai, NgayTao, MaTL)
+    SELECT 
+        'TB' + RIGHT('000' + CAST(@MaxMaTB + ROW_NUMBER() OVER (ORDER BY i.MaTaiLieu) AS VARCHAR(3)), 3),
+        i.MaNguoiDang,
+        N'Đăng tải tài liệu thành công',
+        N'Tài liệu "' + i.TieuDe + N'" đã được đăng tải thành công. Tài liệu đang chờ duyệt từ cán bộ khoa.',
+        N'Đăng tải tài liệu',
+        N'Chưa đọc',
+        GETDATE(),
+        i.MaTaiLieu
+    FROM inserted i
+    LEFT JOIN deleted d ON i.MaTaiLieu = d.MaTaiLieu
+    WHERE d.MaTaiLieu IS NULL; -- Chỉ khi INSERT (không có bản ghi cũ)
+END;
+GO
+
+-----------------------------------------------------------
+-- TRIGGER TỰ ĐỘNG CỘNG ĐIỂM KHI TÀI LIỆU ĐƯỢC DUYỆT
+-----------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_CongDiem_TaiLieuDuyet;
+GO
+
+CREATE TRIGGER trg_CongDiem_TaiLieuDuyet
+ON TaiLieu
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Chỉ xử lý khi tài liệu chuyển sang trạng thái "Đã duyệt"
+    IF EXISTS (
+        SELECT 1 
+        FROM inserted i
+        INNER JOIN deleted d ON i.MaTaiLieu = d.MaTaiLieu
+        WHERE i.TrangThaiDuyet = N'Đã duyệt' 
+            AND d.TrangThaiDuyet != N'Đã duyệt'
+    )
+    BEGIN
+        -- Cộng điểm cho sinh viên (tính tổng điểm nếu có nhiều tài liệu)
+        UPDATE sv
+        SET sv.DiemTichLuy = sv.DiemTichLuy + ISNULL(TongDiem.TongDiemCong, 0)
+        FROM SinhVien sv
+        INNER JOIN (
+            SELECT 
+                tk.MaSV,
+                SUM(dq.DiemTL) AS TongDiemCong
+            FROM inserted i
+            INNER JOIN deleted d ON i.MaTaiLieu = d.MaTaiLieu
+            INNER JOIN TaiKhoan tk ON i.MaNguoiDang = tk.MaTK
+            INNER JOIN SinhVien sv2 ON tk.MaSV = sv2.MaSV
+            INNER JOIN LoaiTaiLieu ltl ON i.MaLoaiTL = ltl.MaLTL
+            INNER JOIN DoQuy dq ON ltl.MaDQ = dq.MaDQ
+            WHERE i.TrangThaiDuyet = N'Đã duyệt' 
+                AND d.TrangThaiDuyet != N'Đã duyệt'
+            GROUP BY tk.MaSV
+        ) AS TongDiem ON sv.MaSV = TongDiem.MaSV;
+        
+        -- Ghi lại lịch sử thay đổi điểm (từng tài liệu một dòng)
+        INSERT INTO LichSuDiem (MaSV, SoDiemThayDoi, LyDo, NgayThayDoi, MaHK)
+        SELECT 
+            tk.MaSV,
+            dq.DiemTL,
+            N'Đăng tải tài liệu "' + i.TieuDe + N'" được duyệt',
+            GETDATE(),
+            (SELECT TOP 1 MaHK FROM HocKy WHERE GETDATE() BETWEEN NgayBD AND NgayKT ORDER BY NgayBD DESC)
+        FROM inserted i
+        INNER JOIN deleted d ON i.MaTaiLieu = d.MaTaiLieu
+        INNER JOIN TaiKhoan tk ON i.MaNguoiDang = tk.MaTK
+        INNER JOIN SinhVien sv ON tk.MaSV = sv.MaSV
+        INNER JOIN LoaiTaiLieu ltl ON i.MaLoaiTL = ltl.MaLTL
+        INNER JOIN DoQuy dq ON ltl.MaDQ = dq.MaDQ
+        WHERE i.TrangThaiDuyet = N'Đã duyệt' 
+            AND d.TrangThaiDuyet != N'Đã duyệt';
+    END;
+END;
+GO
+
+-----------------------------------------------------------
 -- 2. CHÈN DỮ LIỆU DANH MỤC
 -----------------------------------------------------------
 INSERT INTO Khoa (MaKhoa, TenKhoa) VALUES  
@@ -280,6 +414,7 @@ INSERT INTO TaiKhoan (MaTK, TenTK, MatKhau, MaVaiTro, TrangThai) VALUES
 ('TK013', 'sv_nam', '123456', 'VT003', N'Đang hoạt động');
 GO
 
+<<<<<<< Updated upstream:SQLQuery1.sql
 INSERT INTO GiangVien (MaGV, TenGV, GioiTinh, NgaySinh, Email, SDT, HocVi, MaKhoa, MaTK) VALUES  
 ('GV001', N'Trần Bửu Dung', N'Nữ', '1985-05-20', 'dungtb@ute.udn.vn', '0905123456', N'Thạc sĩ', 'CNS', 'TK002'),
 ('GV002', N'Lê Văn Nam', N'Nam', '1980-10-12', 'namlv@ute.udn.vn', '0905654321', N'Tiến sĩ', 'CK', 'TK003');
@@ -296,6 +431,20 @@ INSERT INTO SinhVien (MaSV, TenSV, Email, NgaySinh, GioiTinh, DiemTichLuy, MaLop
 ('SV008', N'Bùi Minh Tú', 'tubm@gmail.com', '2005-12-01', N'Nam', 600, '23T2', N'Đang học', 'TK011'),
 ('SV009', N'Ngô Bảo Châu', 'chaunb@gmail.com', '2005-04-18', N'Nữ', 350, '23DD1', N'Đang học', 'TK012'),
 ('SV010', N'Lý Hải Nam', 'namlh@gmail.com', '2005-07-25', N'Nam', 210, '23T3', N'Đang học', 'TK013');
+=======
+INSERT INTO SinhVien (MaSV, TenSV, Email, NgaySinh, GioiTinh, DiemTichLuy, MaLop, TrangThaiSV) VALUES  
+('SV001', N'Nguyễn Ngọc Kiều Oanh', 'oanhnnk@gmail.com', '2005-01-15', N'Nữ', 0, '23T2', N'Đang học'),
+('SV002', N'Trần Gia Thái', 'thaitg@gmail.com', '2005-03-22', N'Nam', 0, '22SK1', N'Đang học'),
+('SV003', N'Phùng Văn Vũ', 'vuv@gmail.com', '2005-06-10', N'Nam', 0, '23T1', N'Đang học'),
+('SV004', N'Lê Thị Lan', 'lanlt@gmail.com', '2005-09-05', N'Nữ', 0, '23T1', N'Đang học'),
+('SV005', N'Phạm Tuấn Hùng', 'hungpt@gmail.com', '2005-11-30', N'Nam', 0, '23OT1', N'Tạm nghỉ'),
+('SV006', N'Hoàng Thanh Mai', 'maiht@gmail.com', '2005-02-28', N'Nữ', 0, '23TP1', N'Đang học'),
+('SV007', N'Đặng Anh Khoa', 'khoada@gmail.com', '2005-08-14', N'Nam', 0, '23XD1', N'Đang học'),
+('SV008', N'Bùi Minh Tú', 'tubm@gmail.com', '2005-12-01', N'Nam', 0, '23T2', N'Đang học'),
+('SV009', N'Ngô Bảo Châu', 'chaunb@gmail.com', '2005-04-18', N'Nữ', 0, '23DD1', N'Đang học'),
+('SV010', N'Lý Hải Nam', 'namlh@gmail.com', '2005-07-25', N'Nam', 0, '23T3', N'Đang học'),
+('SV011', N'Phạm Lê Thiệu Quang', 'quangplt@gmail.com', '2005-07-05', N'Nam', 0, '23T3', N'Đang học');
+>>>>>>> Stashed changes:db_SHAREDOCS.sql
 GO
 
 INSERT INTO HocKy (MaHK, TenHK, NamHoc, NgayBD, NgayKT) VALUES  
@@ -320,6 +469,7 @@ GO
 -----------------------------------------------------------
 -- 4. CHÈN DỮ LIỆU TÀI LIỆU VÀ TƯƠNG TÁC
 -----------------------------------------------------------
+<<<<<<< Updated upstream:SQLQuery1.sql
 INSERT INTO TaiLieu (MaTaiLieu, TieuDe, MoTa, DuongDanFile, LoaiFile, trangThaiDuyet, maMonHoc, maNguoiDang, ngayDang, lanTaiBan, NXB, maloaiTL, diemYeuCau) VALUES  
 ('TL001', N'Slide Java Swing UTE', N'Bài giảng GUI', 'java_swing.pdf', 'PDF', N'DaDuyet', '5169', 'GV001', GETDATE(), 1, N'NXB Giáo dục', 'L0004', 0),
 ('TL002', N'Đề cương SQL II', N'Tổng hợp kiến thức', 'sql_on_tap.docx', 'DOCX', N'DaDuyet', '5128', 'SV001', GETDATE(), 2, N'NXB Trẻ', 'L0002', 10),
@@ -331,18 +481,43 @@ INSERT INTO TaiLieu (MaTaiLieu, TieuDe, MoTa, DuongDanFile, LoaiFile, trangThaiD
 ('TL008', N'BTL Cơ sở dữ liệu II', N'Thiết kế database', 'btl_db2.sql', 'SQL', N'DaDuyet', '5195', 'SV004', GETDATE(), 1, NULL, 'L0003', 0),
 ('TL009', N'Slide Truyền nhiệt', N'Ngành thực phẩm', 'nhiet_food.ppt', 'PPT', N'DaDuyet', '7131', 'GV001', GETDATE(), 1, NULL, 'L0004', 0),
 ('TL010', N'Đề cương Vẽ Cơ khí', N'Bài tập hình họa', 've_ck_on_tap.pdf', 'PDF', N'TuChoi', '4302', 'SV002', GETDATE(), 1, NULL, 'L0002', 0);
+=======
+-- Bước 1: INSERT tài liệu ở trạng thái "Chờ duyệt" (trigger sẽ tạo thông báo đăng tải)
+INSERT INTO TaiLieu 
+(MaTaiLieu, TieuDe, MoTa, DuongDanFile, LoaiFile, TrangThaiDuyet, MaMonHoc, MaNguoiDang, NgayDang, LanTaiBan, NXB, MaLoaiTL, DiemYeuCau) 
+VALUES  
+('TL001', N'Slide Java Swing UTE', N'Bài giảng GUI', '5169_Slide_JavaSwing_GV001_2025.pdf', 'PDF', N'Chờ duyệt', '5169', 'GV001', GETDATE(), 1, N'NXB Giáo dục', 'L0004', 0),
+('TL002', N'Đề cương SQL II', N'Tổng hợp kiến thức', '5128_DeCuong_SQL2_SV001_2025.docx', 'DOCX', N'Chờ duyệt', '5128', 'SV001', GETDATE(), 2, N'NXB Trẻ', 'L0002', 10),
+('TL003', N'Báo cáo BTL Công nghệ phần mềm', N'Mẫu nhóm 23T1', '5132_BTL_CongNghePM_SV004_2025.pdf', 'PDF', N'Chờ duyệt', '5132', 'SV004', GETDATE(), 1, NULL, 'L0003', 5),
+('TL004', N'Giáo trình Cắt gọt kim loại', N'Sách điện tử', '4003_GiaoTrinh_CatGotKimLoai_GV002_2025.pdf', 'PDF', N'Chờ duyệt', '4003', 'GV002', GETDATE(), 3, N'NXB Kỹ thuật', 'L0001', 0),
+('TL005', N'Slide ReactJS', N'Tài liệu thực hành', '5175_Slide_ReactJS_SV001_2025.pdf', 'PDF', N'Chờ duyệt', '5175', 'SV001', GETDATE(), 1, NULL, 'L0004', 5),
+('TL006', N'Đề cương Bảo vệ rơle', N'Câu hỏi trắc nghiệm', '5002_DeCuong_BaoVeRole_SV003_2025.pdf', 'PDF', N'Chờ duyệt', '5002', 'SV003', GETDATE(), 1, NULL, 'L0002', 5),
+('TL007', N'Giáo trình AI', N'Tài liệu dịch', '5226_GiaoTrinh_AI_SV007_2025.pdf', 'PDF', N'Chờ duyệt', '5226', 'SV007', GETDATE(), 2, N'NXB Khoa học', 'L0001', 0),
+('TL008', N'BTL Cơ sở dữ liệu II', N'Thiết kế database', '5195_BTL_CSDL2_SV004_2025.sql', 'SQL', N'Chờ duyệt', '5195', 'SV004', GETDATE(), 1, NULL, 'L0003', 0),
+('TL009', N'Slide Truyền nhiệt', N'Ngành thực phẩm', '7131_Slide_TruyenNhiet_GV001_2025.ppt', 'PPT', N'Chờ duyệt', '7131', 'GV001', GETDATE(), 1, NULL, 'L0004', 0),
+('TL010', N'Đề cương Vẽ Cơ khí', N'Bài tập hình họa', '4302_DeCuong_VeCoKhi_SV002_2025.pdf', 'PDF', N'Chờ duyệt', '4302', 'SV002', GETDATE(), 1, NULL, 'L0002', 0);
+>>>>>>> Stashed changes:db_SHAREDOCS.sql
 GO
 
-INSERT INTO ThongBao (MaTB, MaNguoiNhan, TieuDe, NoiDung, LoaiThongBao, TrangThai, NgayTao) VALUES  
-('TB001', 'SV001', N'Tài liệu được duyệt', N'Tài liệu SQL của bạn đã được hiển thị.', N'Hệ thống', N'Chưa đọc', GETDATE()),
-('TB002', 'SV002', N'Tài liệu bị từ chối', N'Bản vẽ của bạn thiếu kích thước chi tiết.', N'Hệ thống', N'Chưa đọc', GETDATE());
+-- Bước 2: UPDATE để duyệt/từ chối tài liệu (trigger sẽ tạo thông báo + cộng điểm)
+UPDATE TaiLieu SET TrangThaiDuyet = N'Đã duyệt' WHERE MaTaiLieu IN ('TL001', 'TL002', 'TL004', 'TL005', 'TL007', 'TL008', 'TL009');
+UPDATE TaiLieu SET TrangThaiDuyet = N'Từ chối', LyDoTuChoi = N'Bản vẽ thiếu kích thước chi tiết' WHERE MaTaiLieu = 'TL010';
 GO
 
+<<<<<<< Updated upstream:SQLQuery1.sql
 -- SỬA LỖI: SV01 -> SV001 cho khớp bảng SinhVien
+=======
+-- Không cần INSERT thủ công vào ThongBao vì trigger đã tự động tạo
+
+>>>>>>> Stashed changes:db_SHAREDOCS.sql
 INSERT INTO DanhGia (MaDG, MaTL, MaND, SoSaoDG) VALUES  
 ('DG001', 'TL001', 'SV001', 5),
 ('DG002', 'TL002', 'SV002', 4);
 GO
+<<<<<<< Updated upstream:SQLQuery1.sql
+=======
+
+>>>>>>> Stashed changes:db_SHAREDOCS.sql
 INSERT INTO BinhLuan (MaBL, MaTL, MaND, NoiDung) VALUES  
 ('BL001', 'TL001', 'SV001', N'Tài liệu rất hay và chi tiết ạ!'),
 ('BL002', 'TL002', 'SV003', N'Đề thi này sát với thực tế ôn tập.');
@@ -363,3 +538,7 @@ INSERT INTO BaoCaoViPham (MaBaoCao, MaTaiLieu, NguoiBaoCao, LyDo, MoTaChiTiet, T
 ('BC009', 'TL010', 'SV001', N'Tài liệu trùng lặp', N'Tài liệu này đã tồn tại trên hệ thống với mã TL002.', N'Đã bác bỏ', '2026-04-29 09:00:00', '2026-04-29 17:00:00'),
 ('BC010', 'TL001', 'SV009', N'Link tải file bị hỏng', N'Khi nhấn tải xuống hệ thống báo lỗi không tìm thấy tệp tin trên máy chủ.', N'Chờ xử lý', '2026-04-30 10:20:00', NULL);
 GO
+<<<<<<< Updated upstream:SQLQuery1.sql
+=======
+
+>>>>>>> Stashed changes:db_SHAREDOCS.sql
