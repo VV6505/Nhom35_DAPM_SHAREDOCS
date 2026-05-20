@@ -15,6 +15,9 @@ builder.Services.AddControllersWithViews()
             manager.ApplicationParts.Remove(userPart);
         }
     });
+
+builder.Services.AddScoped<HeThong_Admin.Services.AzureBlobService>();
+
 builder.Services.AddDbContext<HeThongChiaSeTaiLieu_V1>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 

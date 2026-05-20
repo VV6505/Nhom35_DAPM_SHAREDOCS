@@ -7,10 +7,12 @@ namespace HeThong_Admin.Controllers
     public class DuyetTaiLieuController : Controller
     {
         private readonly HeThongChiaSeTaiLieu_V1 _context;
+        private readonly HeThong_Admin.Services.AzureBlobService _azureBlobService;
 
-        public DuyetTaiLieuController(HeThongChiaSeTaiLieu_V1 context)
+        public DuyetTaiLieuController(HeThongChiaSeTaiLieu_V1 context, HeThong_Admin.Services.AzureBlobService azureBlobService)
         {
             _context = context;
+            _azureBlobService = azureBlobService;
         }
 
         // [GET] Danh sách phê duyệt: Lấy danh sách tài liệu cần duyệt dựa trên vai trò (Admin thấy bài của toàn trường, CBK thấy bài của khoa).
@@ -72,8 +74,8 @@ namespace HeThong_Admin.Controllers
             var taiLieus = await query.OrderByDescending(t => t.NgayDang).ToListAsync();
             var khoas = await _context.Khoas.OrderBy(k => k.TenKhoa).ToListAsync();
 
-            // Lấy tên người đăng
             var nguoiDangMap = new Dictionary<string, string>();
+            var previewLinks = new Dictionary<string, string>();
             foreach (var tl in taiLieus)
             {
                 if (!string.IsNullOrEmpty(tl.MaNguoiDang) && !nguoiDangMap.ContainsKey(tl.MaNguoiDang))
@@ -82,6 +84,11 @@ namespace HeThong_Admin.Controllers
                     var gv = await _context.GiangViens.FirstOrDefaultAsync(g => g.MaGv == tl.MaNguoiDang);
                     nguoiDangMap[tl.MaNguoiDang] = sv?.TenSv ?? gv?.TenGv ?? tl.MaNguoiDang;
                 }
+
+                if (!string.IsNullOrEmpty(tl.DuongDanFile))
+                {
+                    previewLinks[tl.MaTaiLieu] = _azureBlobService.GenerateSasLink(tl.DuongDanFile, 60);
+                }
             }
 
             ViewBag.Khoas = khoas;
@@ -89,6 +96,7 @@ namespace HeThong_Admin.Controllers
             ViewBag.Khoa = khoa;
             ViewBag.Search = search;
             ViewBag.NguoiDangMap = nguoiDangMap;
+            ViewBag.PreviewLinks = previewLinks;
 
             return View(taiLieus);
         }
