@@ -339,7 +339,7 @@
 
     async function loadUploads() {
         try {
-            const response = await fetch('/Documents/GetMyUploads');
+            const response = await fetch('/Document/GetMyUploads');
             const result = await response.json();
 
             if (result.success) {
@@ -360,7 +360,7 @@
 
     async function loadSaved() {
         try {
-            const response = await fetch('/Documents/GetMySaved');
+            const response = await fetch('/Document/GetMySaved');
             const result = await response.json();
 
             if (result.success) {
@@ -381,7 +381,7 @@
 
     async function loadDownloads() {
         try {
-            const response = await fetch('/Documents/GetMyDownloads');
+            const response = await fetch('/Document/GetMyDownloads');
             const result = await response.json();
 
             if (result.success) {

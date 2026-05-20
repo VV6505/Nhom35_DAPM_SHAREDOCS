@@ -42,9 +42,111 @@
                         </p>
                     </div>
 
+                    @if (ViewBag.PreviewUrl == "NOT_FOUND" || string.IsNullOrEmpty((string)ViewBag.PreviewUrl))
+                    {
+                        <div class="alert alert-warning border-0 p-4 text-center" style="border-radius: 12px; background-color: #fff3cd; color: #664d03;">
+                            <i class="fa-solid fa-circle-exclamation fs-1 mb-3 text-warning"></i>
+                            <h5 class="fw-bold">DỮ LIỆU XEM TRƯỚC VỀ TÀI LIỆU NÀY TRÊN SERVER HIỆN KHÔNG CÓ. XIN VUI LÒNG THÔNG CẢM</h5>
+                        </div>
+                    }
+                    else
+                    {
+                        string loaiFile = (Model.LoaiFile ?? "").ToLower().Replace(".", "").Trim();
+                        bool isImage = loaiFile == "png" || loaiFile == "jpg" || loaiFile == "jpeg" || loaiFile == "gif" || loaiFile == "bmp" || loaiFile == "webp" || loaiFile == "tiff";
+
+                        if (isImage)
+                        {
+                            <div class="alert alert-info border-0 p-5 text-center mb-4" style="border-radius: 16px; background-color: #f8fafc; border: 1px dashed #cbd5e1 !important; color: #1e293b; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);">
+                                <i class="fa-solid fa-image fs-1 mb-3 text-secondary" style="font-size: 3rem !important;"></i>
+                                <h5 class="fw-bold mb-2">TÀI LIỆU DẠNG HÌNH ẢNH</h5>
+                                <p class="text-muted small mb-4">Hệ thống không hỗ trợ xem trước trực tuyến đối với tài liệu định dạng hình ảnh để bảo vệ bản quyền.</p>
+                                <a href="@Url.Action("Download", "Document", new { id = Model.MaTaiLieu })" class="btn btn-success px-5 py-3 rounded-pill fw-bold border-0 shadow-lg" style="background-color: #10b981 !important; color: #fff !important; transition: all 0.25s ease;" onmouseover="this.style.backgroundColor='#059669'" onmouseout="this.style.backgroundColor='#10b981'">
+                                    <i class="fa-solid fa-download me-2"></i>Tải hình ảnh về để xem chi tiết @((Model.DiemYeuCau ?? 0) > 0 ? $"({Model.DiemYeuCau} điểm)" : "")
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            bool isFullyVisible = ViewBag.IsFullyVisible ?? false;
+                            
+                            if (isFullyVisible)
+                            {
+                                <div class="card shadow-sm border-0 mb-4 p-0" style="border-radius: 12px; overflow: hidden; height: 950px; position: relative;">
+                                    @{
+                                        bool isOffice = loaiFile == "doc" || loaiFile == "docx" || loaiFile == "xls" || loaiFile == "xlsx" || loaiFile == "ppt" || loaiFile == "pptx";
+                                        string previewUrl = ViewBag.PreviewUrl;
+                                        if (isOffice)
+                                        {
+                                            previewUrl = "https://view.officeapps.live.com/op/embed.aspx?src=" + System.Net.WebUtility.UrlEncode(previewUrl) + "&wdStartOn=1&wdPrint=0&wdEmbedCode=0";
+                                        }
+                                    }
+                                    
+                                    <div class="preview-iframe-wrapper">
+                                        <iframe src="@previewUrl"></iframe>
+                                    </div>
+
+                                    <!-- Lớp chắn chặn thao tác tải bản sao trực tiếp trên MS Word Toolbar -->
+                                    <div class="iframe-blocker" style="position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: rgba(248, 250, 252, 0.01); z-index: 99; cursor: not-allowed;" title="Vui lòng tải về để sử dụng đầy đủ tính năng"></div>
+                                </div>
+                            }
+                            else
+                            {
+                                @* Trường hợp bị giới hạn xem trước: parent cuộn trang chủ động để lướt qua trang 2 sẽ gặp bảng khóa và toàn bộ phần sau bị che kín *@
+                                <div class="card shadow-sm border-0 mb-4 p-0" style="border-radius: 12px; overflow-y: auto; overflow-x: hidden; height: 750px; position: relative; background-color: #f1f5f9;">
+                                    @{
+                                        bool isOffice = loaiFile == "doc" || loaiFile == "docx" || loaiFile == "xls" || loaiFile == "xlsx" || loaiFile == "ppt" || loaiFile == "pptx";
+                                        string previewUrl = ViewBag.PreviewUrl;
+                                        if (isOffice)
+                                        {
+                                            previewUrl = "https://view.officeapps.live.com/op/embed.aspx?src=" + System.Net.WebUtility.UrlEncode(previewUrl) + "&wdStartOn=1&wdPrint=0&wdEmbedCode=0";
+                                        }
+                                    }
+                                    
+                                    @* Chiều cao 2600px đại diện cho chiều cao của nhiều trang tài liệu. pointer-events: none để sự kiện cuộn chuột chuyển thẳng lên lớp cha *@
+                                    <div style="width: 100%; height: 2600px; position: relative; pointer-events: none;">
+                                        <iframe src="@previewUrl" style="position: absolute; inset: 0; width: 118% !important; height: 2600px !important; transform: scale(0.85); transform-origin: top left; border: none; overflow: hidden;"></iframe>
+                                    </div>
+
+                                    <!-- Lớp chắn chặn thao tác tải bản sao trực tiếp trên MS Word Toolbar -->
+                                    <div class="iframe-blocker" style="position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: rgba(248, 250, 252, 0.01); z-index: 99; cursor: not-allowed;" title="Vui lòng tải về để sử dụng đầy đủ tính năng"></div>
+
+                                    <!-- Lớp phủ mờ (Fade Out & Blur) bắt đầu từ trang 3 (top: 620px) với chiều cao 2000px phủ kín hoàn toàn các trang sau -->
+                                    <div class="preview-blur-overlay" style="position: absolute; left: 0; right: 0; top: 620px; height: 2000px; background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.98) 120px, #f1f5f9 250px, #f1f5f9 100%); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 140px; text-align: center; pointer-events: auto;">
+                                        <div class="blur-cta-box p-4 p-md-5 shadow-lg border-0" style="border-radius: 24px; max-width: 580px; margin: 0 15px; background: #2d4045 !important; color: #ffffff !important; box-shadow: 0 15px 40px rgba(45, 64, 69, 0.4) !important;">
+                                            <div class="mb-3">
+                                                <i class="fa-solid fa-lock text-warning" style="font-size: 2.2rem;"></i>
+                                            </div>
+                                            <h4 class="fw-bold mb-2 text-white" style="letter-spacing: 0.5px;">Đây là bản xem trước</h4>
+                                            <p class="text-white-50 small mb-4 px-3" style="font-size: 0.95rem; line-height: 1.5;">Bạn muốn xem đầy đủ vui lòng tải tài liệu để tìm hiểu nội dung rõ hơn</p>
+                                            
+                                            <!-- Điểm nổi bật tương tự hình ảnh tham khảo -->
+                                            <div class="d-flex flex-wrap justify-content-center gap-3 text-white-50 small mb-4 pb-2" style="font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                                <span><i class="fa-solid fa-check text-success me-1"></i> Không giới hạn trang</span>
+                                                <span><i class="fa-solid fa-check text-success me-1"></i> Tải file gốc tốc độ cao</span>
+                                                <span><i class="fa-solid fa-check text-success me-1"></i> Hỗ trợ học tập tối ưu</span>
+                                            </div>
+
+                                            <a href="@Url.Action("Download", "Document", new { id = Model.MaTaiLieu })" class="btn btn-success px-5 py-3 rounded-pill fw-bold border-0 shadow-lg" style="background-color: #10b981 !important; color: #fff !important; transition: all 0.25s ease;" onmouseover="this.style.backgroundColor='#059669'" onmouseout="this.style.backgroundColor='#10b981'">
+                                                <i class="fa-solid fa-download me-2"></i>Tải xuống để xem đầy đủ @((Model.DiemYeuCau ?? 0) > 0 ? $"({Model.DiemYeuCau} điểm)" : "")
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    }
+
                     <div class="row mb-4">
-                        <div class="col-4"><button class="btn btn-outline-secondary w-100 rounded-pill small"><i class="fa-regular fa-star me-1"></i> Lưu</button></div>
-                        <div class="col-4"><button class="btn btn-outline-secondary w-100 rounded-pill small"><i class="fa-regular fa-heart me-1"></i> Thích</button></div>
+                        <div class="col-4">
+                            <button class="btn btn-outline-secondary w-100 rounded-pill small" onclick="toggleSave(event, '@Model.MaTaiLieu')">
+                                <i class="fa-star me-1 @((ViewBag.IsSaved != null && ViewBag.IsSaved == true) ? "fa-solid text-warning" : "fa-regular")" id="saveIcon1"></i> <span id="saveText1">@(ViewBag.IsSaved != null && ViewBag.IsSaved == true ? "Đã lưu" : "Lưu")</span>
+                            </button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-outline-secondary w-100 rounded-pill small" onclick="toggleLike(event, '@Model.MaTaiLieu')">
+                                <i class="fa-heart fa-regular me-1" id="likeIcon1"></i> <span id="likeText1">Thích</span>
+                            </button>
+                        </div>
                         <div class="col-4"><button class="btn btn-outline-secondary w-100 rounded-pill small"><i class="fa-solid fa-share me-1"></i> Gửi</button></div>
                     </div>
 
@@ -111,7 +213,10 @@
                             </a>
 
                             <div class="text-center">
-                                <a href="#" class="text-decoration-none small d-block mb-2"><i class="fa-regular fa-heart me-1"></i>Lưu vào yêu thích</a>
+                                <a href="#" class="text-decoration-none small d-block mb-2" onclick="toggleSave(event, '@Model.MaTaiLieu')">
+                                    <i class="fa-heart me-1 @((ViewBag.IsSaved != null && ViewBag.IsSaved == true) ? "fa-solid text-danger" : "fa-regular")" id="saveIcon2"></i>
+                                    <span id="saveText2">@(ViewBag.IsSaved != null && ViewBag.IsSaved == true ? "Đã lưu" : "Lưu vào yêu thích")</span>
+                                </a>
                                 <hr class="my-2 opacity-25">
                                 @* Tìm nút Báo cáo ở Sidebar trang chi tiết và sửa href *@
 <a href="/Document/RecentReports?id=@Model.MaTaiLieu" class="text-danger small text-decoration-none">
@@ -141,4 +246,76 @@
     .text-muted p { font-size: 1.1rem !important; }
     .download-stats span, .download-stats b { font-size: 1rem !important; }
     .comment-list p { font-size: 1rem !important; }
+
+    /* Wrapper tỷ lệ thu nhỏ thông minh loại bỏ cuộn ngang */
+    .preview-iframe-wrapper {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+        background: #f8fafc;
+        overflow-y: hidden !important;
+    }
+    .preview-iframe-wrapper iframe {
+        width: 118% !important;
+        height: 118% !important;
+        transform: scale(0.85);
+        transform-origin: top left;
+        border: none;
+        overflow-y: hidden !important;
+    }
 </style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            let maTL = '@Model.MaTaiLieu';
+            let key = 'liked_' + maTL;
+            if (localStorage.getItem(key) === 'true') {
+                let l1 = document.getElementById('likeIcon1');
+                let lt1 = document.getElementById('likeText1');
+                if (l1) { l1.classList.remove('fa-regular'); l1.classList.add('fa-solid', 'text-danger'); }
+                if (lt1) { lt1.innerText = 'Đã thích'; }
+            }
+        });
+
+        function toggleLike(e, maTL) {
+            e.preventDefault();
+            let key = 'liked_' + maTL;
+            let l1 = document.getElementById('likeIcon1');
+            let lt1 = document.getElementById('likeText1');
+            
+            if (localStorage.getItem(key) === 'true') {
+                localStorage.removeItem(key);
+                if (l1) { l1.classList.remove('fa-solid', 'text-danger'); l1.classList.add('fa-regular'); }
+                if (lt1) { lt1.innerText = 'Thích'; }
+            } else {
+                localStorage.setItem(key, 'true');
+                if (l1) { l1.classList.remove('fa-regular'); l1.classList.add('fa-solid', 'text-danger'); }
+                if (lt1) { lt1.innerText = 'Đã thích'; }
+            }
+        }
+
+        function toggleSave(e, maTL) {
+            e.preventDefault();
+            $.post('/Document/ToggleSave', { maTL: maTL }, function(res) {
+                if(res.success) {
+                    let s1 = document.getElementById('saveIcon1');
+                    let s2 = document.getElementById('saveIcon2');
+                    let t1 = document.getElementById('saveText1');
+                    let t2 = document.getElementById('saveText2');
+
+                    if(res.saved) {
+                        if(s1) { s1.classList.remove('fa-regular'); s1.classList.add('fa-solid', 'text-warning'); t1.innerText = 'Đã lưu'; }
+                        if(s2) { s2.classList.remove('fa-regular'); s2.classList.add('fa-solid', 'text-danger'); t2.innerText = 'Đã lưu'; }
+                    } else {
+                        if(s1) { s1.classList.remove('fa-solid', 'text-warning'); s1.classList.add('fa-regular'); t1.innerText = 'Lưu'; }
+                        if(s2) { s2.classList.remove('fa-solid', 'text-danger'); s2.classList.add('fa-regular'); t2.innerText = 'Lưu vào yêu thích'; }
+                    }
+                } else {
+                    alert(res.message);
+                }
+            });
+        }
+    </script>
+}

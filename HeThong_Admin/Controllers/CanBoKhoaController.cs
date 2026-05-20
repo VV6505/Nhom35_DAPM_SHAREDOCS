@@ -12,15 +12,18 @@ namespace HeThong_Admin.Controllers
         public string trangThaiDuyet { get; set; } = "";
         public string? lyDoTuChoi { get; set; }
         public DateTime? ngayDang { get; set; }
+        public string urlXemTruoc { get; set; } = "";
     }
 
     public class CanBoKhoaController : Controller
     {
         private readonly HeThongChiaSeTaiLieu_V1 _context;
+        private readonly HeThong_Admin.Services.AzureBlobService _azureBlobService;
 
-        public CanBoKhoaController(HeThongChiaSeTaiLieu_V1 context)
+        public CanBoKhoaController(HeThongChiaSeTaiLieu_V1 context, HeThong_Admin.Services.AzureBlobService azureBlobService)
         {
             _context = context;
+            _azureBlobService = azureBlobService;
         }
 
         private async Task<string?> GetMaKhoaCBK()
@@ -48,17 +51,28 @@ namespace HeThong_Admin.Controllers
                     && t.MaMonHocNavigation.MaNganhNavigation.MaKhoa == maKhoa
                     && t.TrangThaiDuyet == "Chờ duyệt")
                 .OrderByDescending(t => t.NgayDang)
-                .Select(t => new WorkflowDocDto
+                .Select(t => new
                 {
                     maTaiLieu = t.MaTaiLieu,
                     tieuDe = t.TieuDe,
                     loaiFile = t.LoaiFile,
                     trangThaiDuyet = t.TrangThaiDuyet,
-                    ngayDang = t.NgayDang
+                    ngayDang = t.NgayDang,
+                    duongDanFile = t.DuongDanFile
                 })
                 .ToListAsync();
 
-            return View(data);
+            var result = data.Select(t => new WorkflowDocDto
+            {
+                maTaiLieu = t.maTaiLieu,
+                tieuDe = t.tieuDe,
+                loaiFile = t.loaiFile,
+                trangThaiDuyet = t.trangThaiDuyet,
+                ngayDang = t.ngayDang,
+                urlXemTruoc = _azureBlobService.GenerateSasLink(t.duongDanFile, 60)
+            }).ToList();
+
+            return View(result);
         }
 
         public async Task<IActionResult> ReviewedCBK()
@@ -74,18 +88,30 @@ namespace HeThong_Admin.Controllers
                     && t.MaMonHocNavigation.MaNganhNavigation.MaKhoa == maKhoa
                     && t.TrangThaiDuyet != "Chờ duyệt")
                 .OrderByDescending(t => t.NgayDang)
-                .Select(t => new WorkflowDocDto
+                .Select(t => new
                 {
                     maTaiLieu = t.MaTaiLieu,
                     tieuDe = t.TieuDe,
                     loaiFile = t.LoaiFile,
                     trangThaiDuyet = t.TrangThaiDuyet,
                     lyDoTuChoi = t.LyDoTuChoi,
-                    ngayDang = t.NgayDang
+                    ngayDang = t.NgayDang,
+                    duongDanFile = t.DuongDanFile
                 })
                 .ToListAsync();
 
-            return View(data);
+            var result = data.Select(t => new WorkflowDocDto
+            {
+                maTaiLieu = t.maTaiLieu,
+                tieuDe = t.tieuDe,
+                loaiFile = t.loaiFile,
+                trangThaiDuyet = t.trangThaiDuyet,
+                lyDoTuChoi = t.lyDoTuChoi,
+                ngayDang = t.ngayDang,
+                urlXemTruoc = _azureBlobService.GenerateSasLink(t.duongDanFile, 60)
+            }).ToList();
+
+            return View(result);
         }
         [HttpPost]
         public async Task<IActionResult> CBKApprove([FromBody] dynamic data)
