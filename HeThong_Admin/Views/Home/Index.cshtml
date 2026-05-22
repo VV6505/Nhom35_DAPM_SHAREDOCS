@@ -219,7 +219,12 @@
                     }
                 },
                 scales: {
-                    y: { beginAtZero: true, grid: { drawBorder: false } },
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { drawBorder: false },
+                        ticks: { stepSize: 1 },
+                        suggestedMax: 20
+                    },
                     x: { grid: { display: false } }
                 }
             }
@@ -246,7 +251,11 @@
                     legend: { display: false }
                 },
                 scales: {
-                    y: { beginAtZero: true },
+                    y: { 
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 },
+                        suggestedMax: 20
+                    },
                     x: { grid: { display: false } }
                 }
             }

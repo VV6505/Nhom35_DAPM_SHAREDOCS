@@ -44,6 +44,14 @@
     
     .help { font-size: 12px; color: #94a3b8; margin-top: 4px; }
 
+    /* AI Enhancements */
+    .ai-badge { background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 2px 8px; border-radius: 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 8px; vertical-align: middle; animation: pulse 2s infinite; }
+    .ai-input:focus { border-color: #7c3aed; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1); }
+    @@keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; box-shadow: 0 0 8px rgba(37, 99, 235, 0.4); } 100% { opacity: 0.8; } }
+    .btn-submit-ai { background: linear-gradient(135deg, #2563eb, #4f46e5); border: none; overflow: hidden; position: relative; }
+    .btn-submit-ai:hover { background: linear-gradient(135deg, #1d4ed8, #4338ca); transform: translateY(-1px); }
+    .ai-loader { display: flex; align-items: center; gap: 8px; }
+
     @@media (max-width: 992px) {
         .upload-container { grid-template-columns: 1fr; }
         .sidebar-info { position: static; }
@@ -119,15 +127,25 @@
 
                 <!-- Step 3: Metadata -->
                 <section class="section-card">
-                    <div class="section-title"><span>03</span> Thông tin xuất bản & Phân loại</div>
+                    <div class="section-title">
+                        <span>03</span> Thông tin xuất bản & Phân loại
+                        <span class="ai-badge">AI-Powered</span>
+                    </div>
+                    <p style="font-size: 13px; color: #64748b; margin-top: -15px; margin-bottom: 20px;">
+                        💡 <i>Cung cấp chính xác thông tin này giúp AI đánh giá <b>Độ Quý (Rareness Score)</b> cao hơn.</i>
+                    </p>
                     <div class="field-group">
                         <div class="field">
                             <label class="label">Nhà xuất bản</label>
-                            <input asp-for="Nxb" class="input" placeholder="vd: NXB Giáo dục, Tác giả tự do" />
+                            <input asp-for="Nxb" class="input ai-input" placeholder="vd: NXB Giáo dục, Tác giả tự do" />
                         </div>
                         <div class="field">
                             <label class="label">Năm xuất bản</label>
-                            <input asp-for="NamXb" class="input" type="number" min="1990" max="2100" placeholder="2024" />
+                            <input asp-for="NamXb" class="input ai-input" type="number" min="1900" max="2100" placeholder="2024" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Lần tái bản</label>
+                            <input asp-for="LanTaiBan" class="input" type="number" min="1" placeholder="1" value="1" />
                         </div>
                         <div class="field">
                             <label class="label">Khoa</label>
@@ -139,7 +157,7 @@
                                 }
                             </select>
                         </div>
-                        <div class="field">
+                        <div class="field field-full">
                             <label class="label">Ngành</label>
                             <select id="selNganh" class="select" disabled>
                                 <option value="">-- Chọn ngành --</option>
@@ -156,26 +174,25 @@
 
                 <div style="display:flex; justify-content:flex-end; gap: 12px; margin-top: 10px;">
                     <a class="btn btn-light" asp-action="Index" style="border-radius: 12px; padding: 10px 24px;">Hủy bỏ</a>
-                    <button type="submit" class="btn btn-primary" style="border-radius: 12px; padding: 10px 32px; font-weight: 700;">Đăng tải tài liệu</button>
+                    <button type="submit" class="btn btn-primary btn-submit-ai" style="border-radius: 12px; padding: 10px 32px; font-weight: 700;">
+                        <span class="btn-text">Đăng tải & AI Phân tích</span>
+                        <span class="ai-loader" style="display:none;">🧬 Đang phân tích NLP...</span>
+                    </button>
                 </div>
             </div>
 
             <aside class="sidebar-info">
-                <div class="info-card" style="border-color: #f59e0b; background: #fffbeb;">
-                    <span class="info-title" style="color: #b45309;">📋 Quy tắc đặt tên tiêu đề</span>
-                    <div style="font-size: 13px; color: #78350f; line-height: 1.7;">
-                        <b>Bắt buộc:</b> dùng dấu <code style="background:#fef3c7">" - "</code> phân cách<br/>
-                        <code style="background:#fef3c7; padding:4px 8px; border-radius:6px; display:block; margin: 6px 0; font-size:12px;">[Tên môn] - [Loại] <span style="opacity:.5">- [Mô tả] (tuỳ chọn)</span></code>
-                        <b>✅ Hợp lệ:</b>
-                        <ul style="margin: 4px 0; padding-left: 16px;">
-                            <li><em>Cấu trúc dữ liệu - Giáo trình</em></li>
-                            <li><em>Lập trình Java - Slide - Tuần 3</em></li>
-                            <li><em>Mạng máy tính - Đề cương - HK2 2024</em></li>
+                <!-- AI Evaluation Info -->
+                <div class="info-card" style="border-color: #3b82f6; background: #eff6ff;">
+                    <span class="info-title" style="color: #1d4ed8;">🧬 Hệ thống AI Evaluation</span>
+                    <div style="font-size: 13px; color: #1e40af; line-height: 1.6;">
+                        Tài liệu của bạn sẽ được quét tự động để tính <b>Điểm Độ Quý</b> dựa trên:
+                        <ul style="margin: 8px 0; padding-left: 18px;">
+                            <li>Nội dung chuyên sâu & Từ khóa.</li>
+                            <li>Uy tín Nhà xuất bản / Tác giả.</li>
+                            <li>Giá trị lịch sử (Khoảng cách năm).</li>
                         </ul>
-                        <b>❌ Không hợp lệ:</b>
-                        <ul style="margin: 4px 0; padding-left: 16px;">
-                            <li><em>giao trinh ctdl</em> (thiếu " - ")</li>
-                        </ul>
+                        <span style="font-size: 11px; opacity: 0.8;"><i>* Tài liệu "Rất Quý" sẽ được ưu tiên hiển thị đầu trang.</i></span>
                     </div>
                 </div>
 
@@ -244,8 +261,9 @@
                     ext = fileEl.files[0].name.split('.').pop().toUpperCase();
                 }
 
-                // Validate tiêu đề real-time
                 var statusEl = document.getElementById('tieude-status');
+                
+                // 1. Kiểm tra độ dài
                 if (tieuDe.length < 10) {
                     statusEl.style.display = 'block';
                     statusEl.style.color   = '#ef4444';
@@ -253,16 +271,40 @@
                     $('#fileNamePreviewCard').hide();
                     return;
                 }
-                if (!tieuDe.includes(' - ')) {
+
+                // 2. Kiểm tra định dạng dấu gạch ngang
+                var parts = tieuDe.split(' - ');
+                if (parts.length < 2) {
                     statusEl.style.display = 'block';
                     statusEl.style.color   = '#ef4444';
-                    statusEl.textContent   = '❌ Thiếu dấu phân cách " - " giữa các phần';
+                    statusEl.textContent   = '❌ Thiếu dấu phân cách " - " (vd: Tên môn - Loại tài liệu)';
                     $('#fileNamePreviewCard').hide();
                     return;
                 }
-                statusEl.style.display = 'block';
-                statusEl.style.color   = '#16a34a';
-                statusEl.textContent   = '✅ Tiêu đề hợp lệ!';
+
+                // 3. Tự động nhận diện Loại tài liệu từ phần thứ 2 của tiêu đề
+                var detectedTypeName = parts[1].trim();
+                var matchedValue = "";
+                $('#selLoaiTL option').each(function() {
+                    if ($(this).text().trim().toLowerCase() === detectedTypeName.toLowerCase()) {
+                        matchedValue = $(this).val();
+                    }
+                });
+
+                if (matchedValue) {
+                    if ($('#selLoaiTL').val() !== matchedValue) {
+                        $('#selLoaiTL').val(matchedValue).trigger('change');
+                    }
+                    statusEl.style.display = 'block';
+                    statusEl.style.color   = '#16a34a';
+                    statusEl.textContent   = '✅ Tiêu đề và Loại tài liệu hợp lệ!';
+                } else {
+                    statusEl.style.display = 'block';
+                    statusEl.style.color   = '#f59e0b';
+                    statusEl.textContent   = '⚠️ Loại tài liệu "' + detectedTypeName + '" không tồn tại trong hệ thống. Vui lòng sửa lại tiêu đề.';
+                    $('#fileNamePreviewCard').hide();
+                    return;
+                }
 
                 // Hiển thị preview tên file
                 if (ext) {
@@ -275,7 +317,8 @@
             }
 
             // Bắt sự kiện để cập nhật preview
-            $('#inputTieuDe, #selLoaiTL, #selMonHoc').on('input change', updateFileNamePreview);
+            $('#inputTieuDe').on('input blur', updateFileNamePreview);
+            $('#selLoaiTL, #selMonHoc').on('change', updateFileNamePreview);
             document.getElementById('file').addEventListener('change', updateFileNamePreview);
 
             // Cascade Khoa -> Nganh -> Mon
@@ -356,6 +399,12 @@
                 const sizeMB = Math.round((f.size / 1024 / 1024) * 10) / 10;
                 fileInfo.textContent = `📁 ${f.name} (${sizeMB} MB)`;
 
+                // Tự động cập nhật định dạng tệp
+                var ext = f.name.split('.').pop().toUpperCase();
+                if (ext === "PDF" || ext === "DOCX" || ext === "PPTX") {
+                    $('select[name="LoaiFile"]').val(ext);
+                }
+
                 // Luôn tự động cập nhật tiêu đề từ tên file mới (bỏ đuôi mở rộng)
                 var baseName = f.name.replace(/\.[^.]+$/, ''); // bỏ .pdf .docx ...
                 $('#inputTieuDe').val(baseName);
@@ -390,12 +439,30 @@
             // Client-side validate trước khi submit
             $('#uploadForm').submit(function(e) {
                 var tieuDe = $('#inputTieuDe').val().trim();
-                if (tieuDe.length < 10 || !tieuDe.includes(' - ')) {
+                var parts = tieuDe.split(' - ');
+                
+                if (tieuDe.length < 10 || parts.length < 2) {
                     e.preventDefault();
-                    alert('⚠️ Tiêu đề không hợp lệ!\n\nĐịnh dạng: [Tên môn] - [Loại tài liệu] - [Mô tả]\nVí dụ: "Cấu trúc dữ liệu - Giáo trình - Chương 1 đến 5"');
+                    alert('⚠️ Tiêu đề không đúng định dạng chuẩn!\n\nQuy tắc: [Tên môn] - [Loại tài liệu] - [Mô tả]\nVí dụ: "Thiết kế Web - Giáo trình - Tuần 3"');
                     return false;
                 }
+
+                var detectedTypeName = parts[1].trim().toLowerCase();
+                var selectedTypeName = $('#selLoaiTL option:selected').text().trim().toLowerCase();
+
+                if (detectedTypeName !== selectedTypeName) {
+                    e.preventDefault();
+                    alert('⚠️ Loại tài liệu trong Tiêu đề ("' + parts[1].trim() + '") không khớp với mục Loại tài liệu đang chọn.\n\nVui lòng sửa lại tiêu đề hoặc chọn đúng loại tương ứng!');
+                    return false;
+                }
+
                 $('#progressWrap').show();
+                
+                const btn = $('.btn-submit-ai');
+                btn.prop('disabled', true);
+                btn.find('.btn-text').hide();
+                btn.find('.ai-loader').show();
+
                 var bar = $('#bar');
                 var width = 0;
                 var interval = setInterval(function() {

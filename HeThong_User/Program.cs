@@ -4,7 +4,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<HeThong_User.Services.AzureBlobService>();
+builder.Services.AddScoped<HeThong_User.Services.NLPService>();
 builder.Services.AddDbContext<HeThongChiaSeTaiLieu_V1>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 

@@ -40,7 +40,14 @@
                     </div>
 
                     <div class="post-body px-3 mb-3" style="font-size: 14px; line-height: 1.5;">
-                        Chia sẻ cho các bạn <strong>@item.TieuDe</strong> <i class="fa-solid fa-book-open text-primary"></i> @item.MoTa. 
+                        @{
+                            string displayMoTa = item.MoTa ?? "";
+                            if (displayMoTa.Contains("--- AI EVALUATION ---"))
+                            {
+                                displayMoTa = displayMoTa.Substring(0, displayMoTa.IndexOf("--- AI EVALUATION ---")).Trim();
+                            }
+                        }
+                        Chia sẻ cho các bạn <strong>@item.TieuDe</strong> <i class="fa-solid fa-book-open text-primary"></i> @displayMoTa
                         Hi vọng giúp ích cho các bạn ôn thi tốt! <i class="fa-solid fa-hand-fist text-warning"></i>
                     </div>
 

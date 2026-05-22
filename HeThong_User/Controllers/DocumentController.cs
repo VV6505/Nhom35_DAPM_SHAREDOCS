@@ -17,13 +17,16 @@ namespace HeThong_User.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<DocumentController> _logger;
         private readonly HeThong_User.Services.AzureBlobService _azureBlobService;
+        private readonly HeThong_User.Services.NLPService _nlpService;
 
-        public DocumentController(HeThongChiaSeTaiLieu_V1 context, IWebHostEnvironment env, ILogger<DocumentController> logger, HeThong_User.Services.AzureBlobService azureBlobService)
+        public DocumentController(HeThongChiaSeTaiLieu_V1 context, IWebHostEnvironment env, ILogger<DocumentController> logger, 
+            HeThong_User.Services.AzureBlobService azureBlobService, HeThong_User.Services.NLPService nlpService)
         {
             _context = context;
             _env = env;
             _logger = logger;
             _azureBlobService = azureBlobService;
+            _nlpService = nlpService;
         }
 
         // =====================================================================
@@ -585,16 +588,63 @@ namespace HeThong_User.Controllers
                 
                 await _azureBlobService.UploadFileAsync(fileUpload.OpenReadStream(), standardFileName);
 
+                // ============================================================
+                // NLP EVALUATION (Rareness Score)
+                // ============================================================
+                string rawText = string.Empty;
+                try
+                {
+                    using (var stream = fileUpload.OpenReadStream())
+                    {
+                        rawText = await _nlpService.ExtractTextAsync(stream, ext);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Lỗi khi trích xuất văn bản từ file");
+                }
+
+                var loaiTl = _context.LoaiTaiLieus.Include(l => l.MaDqNavigation).FirstOrDefault(l => l.MaLtl == taiLieu.MaLoaiTl);
+                int diemYc = loaiTl?.MaDqNavigation?.DiemTl ?? 0;
+
+                var evaluation = await _nlpService.EvaluateRarenessAsync(
+                    taiLieu.TieuDe,
+                    ext.Replace(".", "").ToUpper(),
+                    loaiTl?.TenLtl ?? "Tài liệu",
+                    taiLieu.Nxb ?? "Tác giả tự do",
+                    taiLieu.NamXb,
+                    diemYc,
+                    rawText
+                );
+
+                // Lưu kết quả vào MoTa (dạng JSON) để không phá vỡ DB schema hiện tại
+                string evalJson = System.Text.Json.JsonSerializer.Serialize(evaluation, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                taiLieu.MoTa = (taiLieu.MoTa ?? "") + "\n\n--- AI EVALUATION ---\n" + evalJson;
+
                 taiLieu.DuongDanFile  = standardFileName;
                 taiLieu.LoaiFile      = ext.Replace(".", "").ToUpper();
                 if (taiLieu.LoaiFile?.Length > 10) taiLieu.LoaiFile = taiLieu.LoaiFile.Substring(0, 10);
                 taiLieu.TrangThaiDuyet = "Chờ duyệt";
                 taiLieu.NgayDang       = DateTime.Now;
                 taiLieu.LuotTai        = 0;
-                taiLieu.LanTaiBan      = 1;
+                taiLieu.LanTaiBan      = taiLieu.LanTaiBan ?? 1;
+                
+                // Cập nhật điểm dựa trên phân cấp Độ Quý
+                double rarenessScore = evaluation.Evaluation.Final_Rareness_Score;
+                double bonusPoints = 0;
 
-                var loaiTl = _context.LoaiTaiLieus.Include(l => l.MaDqNavigation).FirstOrDefault(l => l.MaLtl == taiLieu.MaLoaiTl);
-                taiLieu.DiemYeuCau = loaiTl?.MaDqNavigation?.DiemTl ?? 0;
+                if (rarenessScore >= 8.5) {
+                    // Rất Quý: Cộng 150% điểm độ quý để khuyến khích tài liệu chất lượng cao
+                    bonusPoints = rarenessScore * 1.5;
+                } else if (rarenessScore >= 6.0) {
+                    // Quý / Hiếm: Cộng 100% điểm độ quý
+                    bonusPoints = rarenessScore;
+                } else {
+                    // Thông thường: Không cộng thêm (giữ nguyên điểm gốc như yêu cầu)
+                    bonusPoints = 0;
+                }
+
+                taiLieu.DiemYeuCau = (int)Math.Round(diemYc + bonusPoints);
 
                 var lastItem = _context.TaiLieus.OrderByDescending(t => t.MaTaiLieu).FirstOrDefault();
                 taiLieu.MaTaiLieu = lastItem != null
@@ -631,45 +681,59 @@ namespace HeThong_User.Controllers
         public async Task<IActionResult> Download(string id)
         {
             if (string.IsNullOrEmpty(id)) return NotFound();
+            
             var maSV = HttpContext.Session.GetString("MaSinhVien");
-            if (string.IsNullOrEmpty(maSV))
+            var maND = HttpContext.Session.GetString("MaTaiKhoan");
+
+            if (string.IsNullOrEmpty(maND))
             {
                 TempData["ErrorMessage"] = "Vui lòng đăng nhập để tải tài liệu!";
                 return RedirectToAction("Login", "Auth");
             }
+
             var taiLieu = await _context.TaiLieus.Include(t => t.MaLoaiTlNavigation).FirstOrDefaultAsync(t => t.MaTaiLieu == id);
-            var sinhVien = await _context.SinhViens.FindAsync(maSV);
-            if (taiLieu == null || sinhVien == null) return NotFound();
+            if (taiLieu == null) return NotFound();
 
             var loaiNguoiDung = HttpContext.Session.GetString("LoaiNguoiDung");
-            bool isOwner    = taiLieu.MaNguoiDang == HttpContext.Session.GetString("MaTaiKhoan");
+            bool isOwner    = taiLieu.MaNguoiDang == maND || taiLieu.MaNguoiDang == maSV;
             bool isLecturer = loaiNguoiDung == "GiangVien";
+            bool isStudent  = loaiNguoiDung == "SinhVien";
 
-            if (!isOwner && !isLecturer && (taiLieu.DiemYeuCau ?? 0) > 0)
+            // Kiểm tra điểm tích lũy nếu là Sinh viên và không phải chủ sở hữu
+            if (isStudent && !isOwner && (taiLieu.DiemYeuCau ?? 0) > 0)
             {
+                var sinhVien = await _context.SinhViens.FindAsync(maSV);
+                if (sinhVien == null) return NotFound();
+
                 if ((sinhVien.DiemTichLuy ?? 0) < (taiLieu.DiemYeuCau ?? 0))
                 {
-                    TempData["ErrorMessage"] = $"Bạn không đủ điểm để tải tài liệu này! (Cần {taiLieu.DiemYeuCau} điểm)";
+                    TempData["ErrorMessage"] = $"Bạn không đủ điểm để tải tài liệu này! Tài liệu này rất quý, cần {taiLieu.DiemYeuCau} điểm để tải (Bạn hiện có {sinhVien.DiemTichLuy} điểm).";
                     return RedirectToAction("Details", new { id });
                 }
+
+                // Trừ điểm
                 sinhVien.DiemTichLuy -= taiLieu.DiemYeuCau;
                 _context.LichSuDiems.Add(new LichSuDiem
                 {
                     MaSv = maSV,
                     SoDiemThayDoi = -(taiLieu.DiemYeuCau ?? 0),
-                    LyDo = $"Tải tài liệu: {taiLieu.TieuDe}",
+                    LyDo = $"Tải tài liệu độ quý cao: {taiLieu.TieuDe}",
                     NgayThayDoi = DateTime.Now
                 });
+                
+                // Cập nhật session điểm hiển thị
                 HttpContext.Session.SetString("DiemTichLuy", sinhVien.DiemTichLuy?.ToString() ?? "0");
             }
 
+            // Ghi nhận lịch sử tải và tăng lượt tải
             _context.LichSuTaiXuongs.Add(new LichSuTaiXuong
             {
                 MaTaiLieu = id,
-                MaNd = HttpContext.Session.GetString("MaTaiKhoan"),
+                MaNd = maND,
                 NgayTai = DateTime.Now
             });
             taiLieu.LuotTai = (taiLieu.LuotTai ?? 0) + 1;
+            
             await _context.SaveChangesAsync();
 
             string sasUrl = _azureBlobService.GenerateSasLink(taiLieu.DuongDanFile, 5);

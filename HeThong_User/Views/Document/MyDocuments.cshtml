@@ -481,6 +481,12 @@
             statusBadge = `<span class="document-badge ${badgeClass}">${status}</span>`;
         }
 
+        // Lọc bỏ JSON AI Evaluation khỏi mô tả
+        let displayMoTa = doc.moTa || '';
+        if (displayMoTa.includes('--- AI EVALUATION ---')) {
+            displayMoTa = displayMoTa.split('--- AI EVALUATION ---')[0].trim();
+        }
+
         let timeInfo = '';
         if (type === 'saved' && extraTime) {
             const savedTime = new Date(extraTime);
@@ -524,7 +530,7 @@
                     ` : ''}
                 </div>
 
-                ${doc.moTa ? `<div class="document-description">${doc.moTa}</div>` : ''}
+                ${displayMoTa ? `<div class="document-description">${displayMoTa}</div>` : ''}
 
                 <div class="document-footer">
                     <div class="document-stats">
