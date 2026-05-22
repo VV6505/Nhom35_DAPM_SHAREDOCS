@@ -1,0 +1,146 @@
+@{
+    ViewData["Title"] = "Sao lưu & Khôi phục dữ liệu";
+    var backups = ViewBag.Backups as IEnumerable<dynamic>;
+}
+
+<div class="content-wrapper p-4">
+    <!-- Header Section -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-gradient-header">
+        <div class="card-body p-4">
+            <h1 class="page-title mb-1">☁️ Sao lưu & Khôi phục dữ liệu</h1>
+            <p class="page-subtitle mb-0 opacity-75">Bảo vệ an toàn dữ liệu hệ thống SHAREDOCS</p>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 action-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="icon-box bg-primary-subtle text-primary">
+                            <i class="fs-3">💾</i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 fw-bold h5">Sao lưu thủ công</h3>
+                            <p class="text-muted mb-0 small">Khởi tạo bản sao lưu ngay lập tức</p>
+                        </div>
+                    </div>
+                    <p class="text-muted mb-4 fs-15">Tạo bản sao lưu toàn bộ cơ sở dữ liệu và tệp tin hệ thống. Quy trình này thường mất từ 1-3 phút tùy thuộc vào dung lượng dữ liệu.</p>
+                    <button class="btn btn-primary btn-lg w-100 rounded-3 fw-bold py-3 shadow-sm" onclick="alert('Đang khởi tạo quá trình sao lưu hệ thống...')">
+                        Bắt đầu sao lưu ngay
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 action-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="icon-box bg-warning-subtle text-warning">
+                            <i class="fs-3">📅</i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 fw-bold h5">Lịch sao lưu tự động</h3>
+                            <p class="text-muted mb-0 small">Thiết lập tần suất lưu trữ định kỳ</p>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-muted small text-uppercase mb-2">Tần suất sao lưu định kỳ</label>
+                        <select class="form-select form-select-lg border-2 border-light bg-light rounded-3">
+                            <option>Hàng ngày (02:00 AM)</option>
+                            <option>Hàng tuần (Đêm Chủ nhật)</option>
+                            <option>Hàng tháng (Ngày 01 mỗi tháng)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-outline-primary btn-lg w-100 rounded-3 fw-bold py-3" onclick="alert('Đã lưu cấu hình sao lưu tự động!')">
+                        Cập nhật cài đặt
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white p-4 border-bottom d-flex align-items-center justify-content-between">
+            <h3 class="mb-0 fw-bold h5">📜 Lịch sử sao lưu hệ thống</h3>
+            <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small">Cập nhật lúc @DateTime.Now.ToString("HH:mm")</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover backup-table mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Thời điểm thực hiện</th>
+                            <th>Kích thước bản lưu</th>
+                            <th>Loại hình</th>
+                            <th class="text-end pe-4">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (backups != null)
+                        {
+                            foreach (var item in backups)
+                            {
+                                <tr>
+                                    <td class="ps-4 py-4 align-middle">
+                                        <div class="fw-bold fs-16">@item.ThoiDiem</div>
+                                    </td>
+                                    <td class="py-4 align-middle">
+                                        <div class="text-muted fs-15">@item.KichThuoc</div>
+                                    </td>
+                                    <td class="py-4 align-middle">
+                                        @if (item.Loai == "Tự động") {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                                                🔄 Tự động
+                                            </span>
+                                        } else {
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill">
+                                                👤 Thủ công
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4 py-4 align-middle">
+                                        <button class="btn btn-sm btn-outline-danger px-3 py-2 fw-bold" onclick="confirm('Cảnh báo: Bạn sắp khôi phục dữ liệu về trạng thái @item.ThoiDiem. Mọi thay đổi sau thời điểm này sẽ bị mất. Bạn có chắc muốn tiếp tục?')">
+                                            🚀 Khôi phục
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-header {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: white;
+    }
+    .bg-gradient-header .page-title { color: white; font-size: 32px; font-weight: 800; }
+    .bg-gradient-header .page-subtitle { color: #cbd5e1; font-size: 15px; }
+
+    .action-card { transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #f1f5f9 !important; }
+    .action-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important; }
+
+    .icon-box {
+        width: 56px; height: 56px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+    }
+
+    .backup-table thead th {
+        background: #f8fafc;
+        padding: 20px 12px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #64748b;
+    }
+    .backup-table td { border-bottom: 1px solid #f1f5f9; }
+    .fs-15 { font-size: 15px; }
+    .fs-16 { font-size: 16px; }
+</style>

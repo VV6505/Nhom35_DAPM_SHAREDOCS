@@ -1,0 +1,112 @@
+@model List<HeThong_User.Areas.Admin.Models.WorkflowDocDto>
+@{
+    ViewData["Title"] = "Lịch sử duyệt tài liệu";
+}
+
+<div class="content-wrapper p-4">
+    <!-- Header Section -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-gradient-header">
+        <div class="card-body p-4">
+            <h1 class="page-title mb-1">📜 Lịch sử duyệt tài liệu</h1>
+            <p class="page-subtitle mb-0 opacity-75">Xem lại danh sách tài liệu đã được xử lý bởi khoa</p>
+        </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="row g-4 mb-4">
+        @{
+            var approvedCount = Model.Count(x => x.trangThaiDuyet == "Chờ Admin duyệt" || x.trangThaiDuyet == "Đã duyệt");
+            var rejectedCount = Model.Count(x => x.trangThaiDuyet == "Từ chối");
+        }
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center border-start border-success border-4">
+                <div class="text-muted small text-uppercase fw-bold mb-1">Đã chấp thuận</div>
+                <div class="h2 fw-black text-success mb-0">@approvedCount</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center border-start border-danger border-4">
+                <div class="text-muted small text-uppercase fw-bold mb-1">Đã từ chối</div>
+                <div class="h2 fw-black text-danger mb-0">@rejectedCount</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History List -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover leaderboard-table mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Thông tin tài liệu</th>
+                        <th class="text-center">Trạng thái cuối</th>
+                        <th>Ghi chú / Lý do</th>
+                        <th class="text-end pe-4">Ngày xử lý</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.OrderByDescending(x => x.ngayDang))
+                    {
+                        <tr class="rank-row">
+                            <td class="ps-4 align-middle">
+                                <div class="fw-bold fs-16 text-dark">@t.tieuDe</div>
+                                <div class="text-muted small">#@t.maTaiLieu • @t.loaiFile</div>
+                            </td>
+                            <td class="text-center align-middle">
+                                @if (t.trangThaiDuyet == "Đã duyệt")
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                                        ✅ @t.trangThaiDuyet
+                                    </span>
+                                }
+                                else if (t.trangThaiDuyet == "Chờ Admin duyệt")
+                                {
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill">
+                                        📤 @t.trangThaiDuyet
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">
+                                        ❌ @t.trangThaiDuyet
+                                    </span>
+                                }
+                            </td>
+                            <td class="align-middle">
+                                <div class="text-muted fs-14 italic">
+                                    @(string.IsNullOrEmpty(t.lyDoTuChoi) ? "—" : t.lyDoTuChoi)
+                                </div>
+                            </td>
+                            <td class="text-end pe-4 align-middle font-monospace text-muted">
+                                @(t.ngayDang?.ToString("dd/MM/yyyy HH:mm") ?? "-")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-header {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: white;
+    }
+    .bg-gradient-header .page-title { color: white; font-size: 32px; font-weight: 800; }
+    .bg-gradient-header .page-subtitle { color: #cbd5e1; font-size: 15px; }
+
+    .leaderboard-table thead th {
+        background: #f8fafc;
+        padding: 18px 12px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #64748b;
+    }
+    .rank-row td { padding: 20px 12px; }
+    .fs-16 { font-size: 16px; }
+    .fs-14 { font-size: 14px; }
+    .fw-black { font-weight: 900; }
+    .italic { font-style: italic; }
+</style>

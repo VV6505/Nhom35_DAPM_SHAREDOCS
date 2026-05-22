@@ -39,6 +39,13 @@ namespace HeThong_User.Controllers
 
         public IActionResult Index()
         {
+            // Nếu là Admin hoặc Cán bộ khoa, tự động chuyển về trang quản trị
+            var maVaiTro = HttpContext.Session.GetString("MaVaiTro");
+            if (maVaiTro?.Trim() == "VT001" || maVaiTro?.Trim() == "VT004")
+            {
+                return RedirectToAction("Index", "Home", new { area = "Admin" });
+            }
+
             // 1. Giữ nguyên các con số thống kê cho Header/Sidebar
             ViewBag.TotalDocs = _context.TaiLieus.Count(t => t.TrangThaiDuyet == "Đã duyệt");
             ViewBag.TotalUsers = _context.SinhViens.Count();

@@ -54,7 +54,7 @@ public partial class HeThongChiaSeTaiLieu_V1 : DbContext
     public virtual DbSet<VaiTro> VaiTros { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSqlServer("Data Source=DESKTOPPPRE7540\\PHUNGVANVU;Initial Catalog=SHAREDOCS;Integrated Security=True;Trust Server Certificate=True");
+        => optionsBuilder.UseSqlServer("Data Source=THIEUQUANG;Initial Catalog=SHAREDOCS;Integrated Security=True;Trust Server Certificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

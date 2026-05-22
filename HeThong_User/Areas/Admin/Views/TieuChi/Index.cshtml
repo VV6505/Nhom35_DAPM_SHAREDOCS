@@ -1,0 +1,246 @@
+@model IEnumerable<HeThong_User.Models.LoaiTaiLieu>
+@{
+    ViewData["Title"] = "Thiết lập tiêu chí";
+    var doQuies = ViewBag.DoQuies as IEnumerable<HeThong_User.Models.DoQuy>;
+}
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #2563eb, #1d4ed8);
+        --success-gradient: linear-gradient(135deg, #10b981, #059669);
+        --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+
+    .criteria-container { display: grid; grid-template-columns: 1fr 420px; gap: 30px; width: 100%; animation: fadeIn 0.5s ease-out; }
+    
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card { background: #fff; border-radius: 16px; border: 1px solid #eef2f6; box-shadow: var(--card-shadow); overflow: hidden; transition: transform 0.3s ease; }
+    .card:hover { transform: translateY(-2px); }
+    
+    .card-header { padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fff; }
+    .card-header h3 { font-size: 17px; font-weight: 800; color: #1e293b; margin-bottom: 0; display: flex; align-items: center; gap: 10px; }
+    .card-header .icon-bg { width: 36px; height: 36px; border-radius: 10px; background: #f0f7ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    
+    .card-body { padding: 0; }
+
+    .table-custom { width: 100%; border-collapse: collapse; }
+    .table-custom th { padding: 16px 24px; text-align: left; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; background: #f8fafc; border-bottom: 1px solid #f1f5f9; }
+    .table-custom td { padding: 18px 24px; font-size: 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; transition: background 0.2s; }
+    .table-custom tr:last-child td { border-bottom: none; }
+    .table-custom tr:hover td { background: #fbfcfe; }
+
+    .form-control-sm { padding: 10px 14px; border-radius: 10px; border: 1px solid #e2e8f0; width: 100%; font-size: 14px; transition: all 0.2s; background: #fcfdfe; }
+    .form-control-sm:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); background: #fff; outline: none; }
+    
+    .form-select-sm { padding: 10px 14px; border-radius: 10px; border: 1px solid #e2e8f0; width: 100%; font-size: 14px; background-color: #fcfdfe; transition: all 0.2s; cursor: pointer; }
+    .form-select-sm:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); background: #fff; outline: none; }
+
+    .btn-save { background: var(--success-gradient); color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2); }
+    .btn-save:hover { transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
+    .btn-save:active { transform: translateY(0); }
+
+    .btn-add { background: var(--primary-gradient); color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); transition: all 0.3s; }
+    .btn-add:hover { box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); transform: translateY(-1px); }
+
+    .badge-point { background: #eff6ff; color: #2563eb; padding: 6px 12px; border-radius: 20px; font-weight: 800; font-size: 12px; border: 1px solid #dbeafe; display: inline-block; }
+    
+    .info-box { background: #fefce8; border: 1px solid #fef08a; padding: 16px 20px; border-radius: 12px; margin-top: 0; }
+    .info-box i { color: #eab308; margin-right: 8px; }
+</style>
+
+<div class="p-4 p-lg-5">
+    <div class="mb-5">
+        <h1 class="h3 fw-bold mb-2">Thiết lập tiêu chí đánh giá</h1>
+        <p class="text-muted fs-6">Quản lý cách tính điểm dựa trên loại tài liệu và mức độ quý hiếm của hệ thống.</p>
+    </div>
+
+    <div class="criteria-container">
+    <div class="card">
+        <div class="card-header">
+            <h3><div class="icon-bg">📄</div> Phân loại tài liệu</h3>
+            <button class="btn-add" onclick="showAddModal()">+ Thêm loại tài liệu mới</button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th style="width: 80px; white-space: nowrap;">Mã loại</th>
+                        <th style="white-space: nowrap;">Tên loại tài liệu</th>
+                        <th style="width: 180px; white-space: nowrap;">Mức độ quý</th>
+                        <th style="width: 120px; white-space: nowrap; text-align: center;">Điểm quy định</th>
+                        <th style="width: 80px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr id="row-@item.MaLtl">
+                            <td class="fw-bold text-muted">@item.MaLtl</td>
+                            <td>
+                                <input type="text" class="form-control-sm" value="@item.TenLtl" id="name-@item.MaLtl" />
+                            </td>
+                            <td>
+                                <select class="form-select-sm" id="dq-@item.MaLtl" onchange="updateRowPoint('@item.MaLtl', event)">
+                                    @foreach (var dq in doQuies)
+                                    {
+                                        <option value="@dq.MaDq" selected="@(dq.MaDq == item.MaDq)" data-point="@dq.DiemTl">
+                                            Mức @dq.MucDoQuy (@dq.DiemTl điểm)
+                                        </option>
+                                    }
+                                </select>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-point" id="point-@item.MaLtl">@(item.MaDqNavigation?.DiemTl ?? 0) đ</span>
+                            </td>
+                            <td>
+                                <button class="btn-save" onclick="saveLoaiTaiLieu('@item.MaLtl')">Lưu</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3><div class="icon-bg">💎</div> Quy định điểm độ quý</h3>
+        </div>
+        <div class="card-body p-0">
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>Mức độ</th>
+                        <th>Số điểm tích lũy</th>
+                        <th style="width: 80px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var dq in doQuies)
+                    {
+                        <tr>
+                            <td class="fw-bold">Mức @dq.MucDoQuy</td>
+                            <td>
+                                <input type="number" class="form-control-sm" value="@dq.DiemTl" id="pt-@dq.MaDq" />
+                            </td>
+                            <td>
+                                <button class="btn-save" onclick="saveDoQuy('@dq.MaDq')">Lưu</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="p-4 border-top">
+                <div class="info-box">
+                    <small class="text-muted d-block"><i class="icon">ℹ️</i> <b>Ghi chú:</b> Thay đổi điểm tại đây sẽ cập nhật tất cả các loại tài liệu thuộc mức độ quý tương ứng.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thêm mới loại tài liệu (Sử dụng Bootstrap đơn giản) -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Thêm loại tài liệu mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted fw-bold small uppercase">Tên loại tài liệu</label>
+                    <input type="text" id="newName" class="form-control" placeholder="Ví dụ: Đề thi cuối kỳ" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted fw-bold small uppercase">Mức độ quý hiếm</label>
+                    <select id="newDq" class="form-select">
+                        @foreach (var dq in doQuies)
+                        {
+                            <option value="@dq.MaDq">Mức @dq.MucDoQuy (@dq.DiemTl điểm)</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary px-4" onclick="createNewLoai()">Xác nhận thêm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateRowPoint(id, e) {
+        const select = document.getElementById(`dq-${id}`);
+        const point = select.options[select.selectedIndex].getAttribute('data-point');
+        document.getElementById(`point-${id}`).innerText = point + " đ";
+    }
+
+    async function saveLoaiTaiLieu(id) {
+        const tenLtl = document.getElementById(`name-${id}`).value;
+        const maDq = document.getElementById(`dq-${id}`).value;
+
+        const res = await fetch('@Url.Action("UpdateLoaiTaiLieu", "TieuChi")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ maLtl: id, tenLtl, maDq })
+        });
+
+        const result = await res.json();
+        if (result.success) {
+            alert("Đã cập nhật loại tài liệu thành công!");
+        } else {
+            alert("Lỗi: " + result.message);
+        }
+    }
+
+    async function saveDoQuy(id) {
+        const diemTl = document.getElementById(`pt-${id}`).value;
+        const mucDoQuy = id === 'DQ001' ? 1 : (id === 'DQ002' ? 2 : 3); // Giả định đơn giản cho demo
+
+        const res = await fetch('@Url.Action("UpdateDoQuy", "TieuChi")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ maDq: id, mucDoQuy, diemTl: parseInt(diemTl) })
+        });
+
+        const result = await res.json();
+        if (result.success) {
+            alert("Đã cập nhật điểm độ quý! Vui lòng tải lại trang để thấy thay đổi ở bảng loại tài liệu.");
+            location.reload();
+        } else {
+            alert("Lỗi: " + result.message);
+        }
+    }
+
+    function showAddModal() {
+        const modal = new bootstrap.Modal(document.getElementById('addModal'));
+        modal.show();
+    }
+
+    async function createNewLoai() {
+        const tenLtl = document.getElementById('newName').value;
+        const maDq = document.getElementById('newDq').value;
+
+        if (!tenLtl) return alert("Vui lòng nhập tên loại tài liệu");
+
+        const res = await fetch('@Url.Action("CreateLoaiTaiLieu", "TieuChi")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tenLtl, maDq })
+        });
+
+        const result = await res.json();
+        if (result.success) {
+            location.reload();
+        } else {
+            alert("Lỗi: " + result.message);
+        }
+    }
+</script>
+</div>

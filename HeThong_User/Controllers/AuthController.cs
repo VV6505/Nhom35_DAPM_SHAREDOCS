@@ -18,9 +18,14 @@ namespace HeThong_User.Controllers
         // [GET] Trang đăng nhập: Hiển thị giao diện cho người dùng nhập tài khoản/mật khẩu.
         public IActionResult Login()
         {
-            // Nếu đã đăng nhập, chuyển về trang chủ
-            if (HttpContext.Session.GetString("MaSinhVien") != null)
+            // Nếu đã đăng nhập, chuyển về trang tương ứng
+            var maVaiTro = HttpContext.Session.GetString("MaVaiTro");
+            if (!string.IsNullOrEmpty(maVaiTro))
             {
+                if (maVaiTro.Trim() == "VT001" || maVaiTro.Trim() == "VT004")
+                {
+                    return RedirectToAction("Index", "Home", new { area = "Admin" });
+                }
                 return RedirectToAction("Index", "Home");
             }
 
@@ -162,29 +167,70 @@ namespace HeThong_User.Controllers
                         TrangThaiSv = sinhVien.TrangThaiSv ?? ""
                     };
                 }
-                else if (taiKhoan.MaGvNavigation != null)
+                else if (taiKhoan.MaGvNavigation != null || taiKhoan.MaVaiTro?.Trim() == "VT001" || taiKhoan.MaVaiTro?.Trim() == "VT004")
                 {
                     var giangVien = taiKhoan.MaGvNavigation;
-                    _logger.LogInformation($"Đăng nhập với vai trò GIẢNG VIÊN: {giangVien.MaGv} - {giangVien.TenGv}");
-                    HttpContext.Session.SetString("MaGiangVien", giangVien.MaGv ?? "");
-                    HttpContext.Session.SetString("TenNguoiDung", giangVien.TenGv ?? "");
+                    _logger.LogInformation($"Đăng nhập với vai trò QUẢN TRỊ/GIẢNG VIÊN: {taiKhoan.MaTk} - {taiKhoan.TenTk}");
+                    
+                    // Set common session variables
+                    HttpContext.Session.SetString("TenNguoiDung", taiKhoan.TenTk ?? "");
                     HttpContext.Session.SetString("LoaiNguoiDung", "GiangVien");
                     HttpContext.Session.SetString("DiemTichLuy", "0");
-                    
-                    userInfo = new
+
+                    // Set Admin-specific session variables for Admin Area
+                    if (taiKhoan.MaVaiTro?.Trim() == "VT001" || taiKhoan.MaVaiTro?.Trim() == "VT004")
                     {
-                        MaTaiKhoan = taiKhoan.MaTk ?? "",
-                        TenTaiKhoan = taiKhoan.TenTk ?? "",
-                        MaVaiTro = taiKhoan.MaVaiTro ?? "",
-                        TenVaiTro = taiKhoan.MaVaiTroNavigation?.TenVaiTro ?? "Giảng viên",
-                        LoaiNguoiDung = "GiangVien",
-                        MaNguoiDung = giangVien.MaGv ?? "",
-                        TenNguoiDung = giangVien.TenGv ?? "Giảng viên",
-                        Email = giangVien.Email ?? "",
-                        Sdt = giangVien.Sdt ?? "",
-                        DiemTichLuy = 0,
-                        MaKhoa = giangVien.MaKhoa ?? ""
-                    };
+                        HttpContext.Session.SetString("AdminId", taiKhoan.MaTk ?? "");
+                        HttpContext.Session.SetString("AdminName", taiKhoan.TenTk ?? "Admin");
+                        HttpContext.Session.SetString("AdminRole", taiKhoan.MaVaiTro?.Trim() ?? "");
+                        HttpContext.Session.SetString("RoleName", taiKhoan.MaVaiTroNavigation?.TenVaiTro ?? "Quản trị");
+
+                        if (giangVien != null)
+                        {
+                            var gvDetailed = await _context.GiangViens
+                                .Include(g => g.MaKhoaNavigation)
+                                .FirstOrDefaultAsync(g => g.MaGv == taiKhoan.MaTk);
+                            
+                            if (gvDetailed != null)
+                            {
+                                HttpContext.Session.SetString("AdminEmail", gvDetailed.Email ?? "");
+                                HttpContext.Session.SetString("AdminFaculty", gvDetailed.MaKhoaNavigation?.TenKhoa ?? "");
+                            }
+                        }
+                    }
+
+                    if (giangVien != null)
+                    {
+                        HttpContext.Session.SetString("MaGiangVien", giangVien.MaGv ?? "");
+                        userInfo = new
+                        {
+                            MaTaiKhoan = taiKhoan.MaTk ?? "",
+                            TenTaiKhoan = taiKhoan.TenTk ?? "",
+                            MaVaiTro = taiKhoan.MaVaiTro ?? "",
+                            TenVaiTro = taiKhoan.MaVaiTroNavigation?.TenVaiTro ?? "Giảng viên",
+                            LoaiNguoiDung = "GiangVien",
+                            MaNguoiDung = giangVien.MaGv ?? "",
+                            TenNguoiDung = giangVien.TenGv ?? "Giảng viên",
+                            Email = giangVien.Email ?? "",
+                            Sdt = giangVien.Sdt ?? "",
+                            DiemTichLuy = 0,
+                            MaKhoa = giangVien.MaKhoa ?? ""
+                        };
+                    }
+                    else
+                    {
+                        userInfo = new
+                        {
+                            MaTaiKhoan = taiKhoan.MaTk ?? "",
+                            TenTaiKhoan = taiKhoan.TenTk ?? "",
+                            MaVaiTro = taiKhoan.MaVaiTro ?? "",
+                            TenVaiTro = taiKhoan.MaVaiTroNavigation?.TenVaiTro ?? "Quản trị",
+                            LoaiNguoiDung = "Admin",
+                            MaNguoiDung = taiKhoan.MaTk ?? "",
+                            TenNguoiDung = taiKhoan.TenTk ?? "Quản trị",
+                            DiemTichLuy = 0
+                        };
+                    }
                 }
                 else
                 {
@@ -193,13 +239,21 @@ namespace HeThong_User.Controllers
 
                 _logger.LogInformation("=== ĐĂNG NHẬP THÀNH CÔNG ===");
                 
+                string redirectUrl = Url.Action("Index", "Home") ?? "/";
+                
+                // Nếu là Admin hoặc Cán bộ khoa, ưu tiên chuyển về trang quản trị
+                if (taiKhoan.MaVaiTro?.Trim() == "VT001" || taiKhoan.MaVaiTro?.Trim() == "VT004")
+                {
+                    redirectUrl = Url.Action("Index", "Home", new { area = "Admin" }) ?? "/Admin/Home/Index";
+                }
+                
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 {
-                    return Json(new { success = true, message = "Đăng nhập thành công!", userInfo });
+                    return Json(new { success = true, message = "Đăng nhập thành công!", userInfo, redirectUrl });
                 }
                 
                 TempData["SuccessMessage"] = "Đăng nhập thành công!";
-                return RedirectToAction("Index", "Home");
+                return Redirect(redirectUrl);
             }
             catch (Exception ex)
             {

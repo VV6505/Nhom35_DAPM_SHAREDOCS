@@ -1,0 +1,89 @@
+@model List<HeThong_User.Models.BaoCaoViPham>
+@{
+    ViewData["Title"] = "Báo cáo vi phạm";
+    var nguoiBCMap = ViewBag.NguoiBCMap as Dictionary<string, string> ?? new Dictionary<string, string>();
+}
+
+<div class="content">
+    <h1 class="page-title">Báo cáo vi phạm</h1>
+    <p class="page-subtitle">Xem xét và xử lý các báo cáo từ người dùng</p>
+
+    <div class="card">
+        <!-- Bộ lọc -->
+        <div class="action-bar">
+            <form method="get" asp-action="Index" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; width:100%;">
+                <select name="trangthai">
+                    <option value="all" selected="@(ViewBag.TrangThai == "all")">Tất cả trạng thái</option>
+                    <option value="Chờ xử lý" selected="@(ViewBag.TrangThai == "Chờ xử lý")">Chờ xử lý</option>
+                    <option value="Đã xử lý" selected="@(ViewBag.TrangThai == "Đã xử lý")">Đã xử lý</option>
+                    <option value="Bỏ qua" selected="@(ViewBag.TrangThai == "Bỏ qua")">Bỏ qua</option>
+                </select>
+                <input type="text" name="search" value="@ViewBag.Search" placeholder="🔍 Tìm theo tên tài liệu..." style="flex:1; min-width:200px; max-width:280px;" />
+                <button type="submit" class="btn btn-primary btn-action">🔍 Tìm kiếm</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline btn-action">↺ Đặt lại</a>
+            </form>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Tài liệu bị báo cáo</th>
+                    <th>Người báo cáo</th>
+                    <th>Lý do</th>
+                    <th>Ngày</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    foreach (var bc in Model)
+                    {
+                        var tenTL = bc.MaTaiLieuNavigation?.TieuDe ?? "—";
+                        var nguoiBC = "—";
+                        if (!string.IsNullOrEmpty(bc.NguoiBaoCao) && nguoiBCMap.ContainsKey(bc.NguoiBaoCao))
+                        {
+                            nguoiBC = nguoiBCMap[bc.NguoiBaoCao];
+                        }
+                        var badgeClass = bc.TrangThaiXuLy switch
+                        {
+                            "Đã xử lý" => "approved",
+                            "Bỏ qua" => "rejected",
+                            _ => "pending"
+                        };
+                        var badgeText = bc.TrangThaiXuLy ?? "Chờ xử lý";
+                        <tr>
+                            <td><strong>@tenTL</strong></td>
+                            <td>@nguoiBC</td>
+                            <td>@(bc.LyDo ?? "—")</td>
+                            <td>@(bc.NgayBaoCao?.ToString("dd/MM") ?? "—")</td>
+                            <td><span class="badge @badgeClass">@badgeText</span></td>
+                            <td>
+                                <div class="btn-group">
+                                    @if (bc.TrangThaiXuLy == null || bc.TrangThaiXuLy == "Chờ xử lý")
+                                    {
+                                        <form method="post" asp-action="XuLyViPham" asp-route-id="@bc.MaBaoCao" style="display:inline;">
+                                            <button type="submit" class="btn btn-danger">Vi phạm</button>
+                                        </form>
+                                        <form method="post" asp-action="BoQua" asp-route-id="@bc.MaBaoCao" style="display:inline;">
+                                            <button type="submit" class="btn btn-outline">Bỏ qua</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span style="font-size:12px; color: var(--text-muted);">Đã xử lý</span>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6" class="empty">Chưa có báo cáo vi phạm nào</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

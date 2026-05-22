@@ -1,0 +1,181 @@
+@model List<HeThong_User.Models.TaiLieu>
+@{
+    ViewData["Title"] = "Duyệt tài liệu";
+    var trangthai = ViewBag.TrangThai as string ?? "all";
+    var khoaFilter = ViewBag.Khoa as string ?? "all";
+    var search = ViewBag.Search as string ?? "";
+    var khoas = ViewBag.Khoas as List<HeThong_User.Models.Khoa>;
+    var nguoiDangMap = ViewBag.NguoiDangMap as Dictionary<string, string> ?? new Dictionary<string, string>();
+    var previewLinks = ViewBag.PreviewLinks as Dictionary<string, string> ?? new Dictionary<string, string>();
+}
+
+<div class="content">
+    <h1 class="page-title">Duyệt tài liệu</h1>
+    <p class="page-subtitle">Kiểm duyệt nội dung tài liệu trước khi hiển thị công khai</p>
+
+    <div class="card">
+        <!-- Bộ lọc -->
+        <div class="action-bar">
+            <form method="get" asp-action="Index" style="display:flex; gap:10px; align-items:center; width:100%;">
+                <select name="trangthai">
+                    <option value="all" selected="@(trangthai == "all")">Tất cả trạng thái</option>
+                    <option value="Chờ duyệt" selected="@(trangthai == "Chờ duyệt")">Chờ khoa duyệt</option>
+                    <option value="Chờ Admin duyệt" selected="@(trangthai == "Chờ Admin duyệt")">Chờ Admin duyệt</option>
+                    <option value="Đã duyệt" selected="@(trangthai == "Đã duyệt")">Đã duyệt</option>
+                    <option value="Từ chối" selected="@(trangthai == "Từ chối")">Từ chối</option>
+                </select>
+                <select name="khoa">
+                    <option value="all" selected="@(khoaFilter == "all")">Tất cả khoa</option>
+                    @if (khoas != null)
+                    {
+                        foreach (var k in khoas)
+                        {
+                            <option value="@k.MaKhoa" selected="@(khoaFilter == k.MaKhoa)">@k.TenKhoa</option>
+                        }
+                    }
+                </select>
+                <input type="text" name="search" value="@search" placeholder="🔍 Tìm tài liệu..." />
+                <button type="submit" class="btn btn-primary btn-action">🔍 Tìm kiếm</button>
+                <a href="@Url.Action("Index")" class="btn btn-outline btn-action">↺ Đặt lại</a>
+            </form>
+        </div>
+
+        <!-- Bảng tài liệu -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Tên tài liệu</th>
+                    <th>Người đăng</th>
+                    <th>Môn học</th>
+                    <th>Ngày đăng</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    foreach (var tl in Model)
+                    {
+                        var tenNguoiDang = "—";
+                        if (!string.IsNullOrEmpty(tl.MaNguoiDang) && nguoiDangMap.ContainsKey(tl.MaNguoiDang))
+                        {
+                            tenNguoiDang = nguoiDangMap[tl.MaNguoiDang];
+                        }
+                        var monHoc = tl.MaMonHocNavigation?.TenMonHoc ?? "—";
+                        var badgeClass = tl.TrangThaiDuyet switch
+                        {
+                            "Đã duyệt" => "approved",
+                            "Chờ duyệt" => "pending",
+                            "Chờ Admin duyệt" => "pending-admin",
+                            "Từ chối" => "rejected",
+                            _ => ""
+                        };
+                        var badgeText = tl.TrangThaiDuyet switch
+                        {
+                            "Đã duyệt" => "Đã duyệt",
+                            "Chờ duyệt" => "Chờ khoa duyệt",
+                            "Chờ Admin duyệt" => "Chờ Admin duyệt",
+                            "Từ chối" => "Từ chối",
+                            _ => tl.TrangThaiDuyet ?? "—"
+                        };
+                        <tr>
+                            <td><strong>@tl.TieuDe</strong></td>
+                            <td>@tenNguoiDang</td>
+                            <td>@monHoc</td>
+                            <td>@(tl.NgayDang?.ToString("dd/MM/yyyy") ?? "—")</td>
+                            <td><span class="badge @badgeClass">@badgeText</span></td>
+                            <td>
+                                <div class="btn-group">
+                                    @{
+                                        string previewUrl = previewLinks.ContainsKey(tl.MaTaiLieu) ? previewLinks[tl.MaTaiLieu] : "";
+                                        string ext = (tl.LoaiFile ?? "").ToLower().Replace(".", "").Trim();
+                                        if (previewUrl != "NOT_FOUND" && !string.IsNullOrEmpty(previewUrl) && (ext == "doc" || ext == "docx" || ext == "xls" || ext == "xlsx" || ext == "ppt" || ext == "pptx"))
+                                        {
+                                            previewUrl = "https://view.officeapps.live.com/op/embed.aspx?src=" + System.Net.WebUtility.UrlEncode(previewUrl) + "&wdStartOn=1&wdPrint=0&wdEmbedCode=0";
+                                        }
+                                    }
+                                    @if (!string.IsNullOrEmpty(previewUrl))
+                                    {
+                                        <button class="btn btn-info text-white" onclick="showPreview('@previewUrl')">Xem trước</button>
+                                    }
+
+                                    @if (tl.TrangThaiDuyet == "Chờ duyệt" || tl.TrangThaiDuyet == "Chờ Admin duyệt")
+                                    {
+                                        <form method="post" asp-action="Duyet" asp-route-id="@tl.MaTaiLieu" style="display:inline;">
+                                            <button type="submit" class="btn btn-success">Duyệt</button>
+                                        </form>
+                                        <form method="post" asp-action="TuChoi" asp-route-id="@tl.MaTaiLieu" style="display:inline;">
+                                            <button type="submit" class="btn btn-danger">Từ chối</button>
+                                        </form>
+                                    }
+                                    else if (tl.TrangThaiDuyet == "Đã duyệt")
+                                    {
+                                        <form method="post" asp-action="Xoa" asp-route-id="@tl.MaTaiLieu" style="display:inline;"
+                                              onsubmit="return confirm('Xóa tài liệu này?');">
+                                            <button type="submit" class="btn btn-danger">Xóa</button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6" class="empty">Không có tài liệu nào</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Xem trước tài liệu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="height: 80vh; position: relative; overflow: hidden;">
+                <div id="previewError" class="d-none p-5 text-center flex-column justify-content-center align-items-center h-100" style="background-color: #fff3cd; color: #664d03;">
+                    <i class="fa-solid fa-circle-exclamation mb-3 text-warning" style="font-size: 4rem !important;"></i>
+                    <h3 class="fw-bold mt-3">DỮ LIỆU XEM TRƯỚC VỀ TÀI LIỆU NÀY TRÊN SERVER HIỆN KHÔNG CÓ. XIN VUI LÒNG THÔNG CẢM</h3>
+                </div>
+                
+                <!-- Wrapper tỉ lệ thu nhỏ thông minh loại bỏ cuộn ngang -->
+                <div class="preview-iframe-wrapper" id="previewWrapper" style="width: 100%; height: 100%; overflow: hidden; position: relative;">
+                    <iframe id="previewContainer" src="" style="border: none;"></iframe>
+                </div>
+
+                <!-- Lớp chắn chặn thao tác tải bản sao trực tiếp trên MS Word Toolbar -->
+                <div class="iframe-blocker" style="position: absolute; bottom: 0; left: 0; right: 0; height: 45px; background: rgba(248, 250, 252, 0.01); z-index: 99; cursor: not-allowed;" title="Vui lòng tải về để sử dụng đầy đủ tính năng"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showPreview(url) {
+            const container = document.getElementById('previewContainer');
+            const errorDiv = document.getElementById('previewError');
+            const wrapper = document.getElementById('previewWrapper');
+            if (url === 'NOT_FOUND' || !url) {
+                container.classList.add('d-none');
+                if (wrapper) wrapper.classList.add('d-none');
+                errorDiv.classList.remove('d-none');
+                errorDiv.classList.add('d-flex');
+                container.src = '';
+            } else {
+                errorDiv.classList.remove('d-flex');
+                errorDiv.classList.add('d-none');
+                container.classList.remove('d-none');
+                if (wrapper) wrapper.classList.remove('d-none');
+                container.src = url;
+            }
+            var myModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            myModal.show();
+        }
+    </script>
+}

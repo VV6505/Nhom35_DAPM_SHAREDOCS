@@ -1,0 +1,212 @@
+@model IEnumerable<HeThong_User.Models.SinhVien>
+@{
+    ViewData["Title"] = "Bảng xếp hạng đóng góp";
+}
+
+<div class="content-wrapper p-4">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-gradient-header">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="page-title mb-1">🏆 Bảng xếp hạng đóng góp</h1>
+                <p class="page-subtitle mb-0 opacity-75">Vinh danh những sinh viên tích cực chia sẻ tài liệu nhất hệ thống</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary btn-lg shadow-sm px-4" onclick="showRewardModal()">
+                    🎁 Tặng thưởng & Cộng điểm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="reward-bar shadow-sm mb-4" id="rewardBar" style="display: none;">
+        <div class="d-flex align-items-center justify-content-between px-4 py-3 bg-white rounded-3 border">
+            <div class="selected-info">
+                <span id="selectedCount" class="fw-bold text-primary">0</span> sinh viên được chọn
+            </div>
+            <div class="d-flex gap-3 align-items-center">
+                <label class="mb-0 text-muted">Số điểm tặng:</label>
+                <input type="number" id="rewardPoints" class="form-control form-control-sm w-100px" value="10" min="1">
+                <button class="btn btn-success btn-sm px-4" onclick="processRewards()">Xác nhận cộng điểm</button>
+                <button class="btn btn-link btn-sm text-muted" onclick="clearSelection()">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <table class="table table-hover leaderboard-table mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4" style="width: 50px;">
+                            <input type="checkbox" id="selectAll" onclick="toggleAll(this)" class="form-check-input">
+                        </th>
+                        <th class="text-center" style="width: 80px;">Hạng</th>
+                        <th>Sinh viên</th>
+                        <th>Lớp / Nhóm</th>
+                        <th class="text-center">MSSV</th>
+                        <th class="text-end pe-4">Điểm tích lũy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ int index = 1; }
+                    @foreach (var item in Model)
+                    {
+                        var initials = "";
+                        if (!string.IsNullOrEmpty(item.TenSv))
+                        {
+                            var parts = item.TenSv.Split(' ');
+                            initials = parts.Length > 1 ? (parts[0][0].ToString() + parts[parts.Length - 1][0].ToString()).ToUpper() : item.TenSv.Substring(0, Math.Min(2, item.TenSv.Length)).ToUpper();
+                        }
+
+                        <tr class="rank-row">
+                            <td class="ps-4">
+                                <input type="checkbox" class="form-check-input sv-check" value="@item.MaSv" onclick="updateSelection()">
+                            </td>
+                            <td class="text-center">
+                                <div class="rank-badge @(index <= 3 ? "top-" + index : "")">
+                                    @if (index == 1) { <span>🥇</span> }
+                                    else if (index == 2) { <span>🥈</span> }
+                                    else if (index == 3) { <span>🥉</span> }
+                                    else { <span>@index</span> }
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar-circle" style="background: @GetRandomColor(index)">@initials</div>
+                                    <div class="sv-info">
+                                        <div class="sv-name">@item.TenSv</div>
+                                        <div class="sv-email text-muted">@item.Email</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
+                                    @(item.MaLopNavigation?.TenLop ?? "N/A")
+                                </span>
+                            </td>
+                            <td class="text-center text-muted font-monospace">@item.MaSv</td>
+                            <td class="text-end pe-4">
+                                <div class="score-pill">
+                                    <span class="score-val">@item.DiemTichLuy</span>
+                                    <span class="score-unit">pts</span>
+                                </div>
+                            </td>
+                        </tr>
+                        index++;
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetRandomColor(int seed)
+    {
+        string[] colors = { "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4" };
+        return colors[seed % colors.Length];
+    }
+}
+
+<style>
+    .bg-gradient-header {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: white;
+    }
+    .bg-gradient-header .page-title { color: white; font-size: 32px; }
+    .bg-gradient-header .page-subtitle { color: #cbd5e1; font-size: 15px; }
+
+    .leaderboard-table thead th {
+        background: #f1f5f9;
+        padding: 20px 12px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #64748b;
+        border-bottom: 2px solid #edf2f7;
+    }
+    .rank-row { transition: all 0.2s; }
+    .rank-row:hover { background-color: #f1f5f9 !important; transform: scale(1.002); }
+    .rank-row td { padding: 20px 12px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
+
+    .avatar-circle {
+        width: 48px; height: 48px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-weight: 700; font-size: 16px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .sv-name { font-size: 16px; font-weight: 700; color: #1e293b; }
+    .sv-email { font-size: 12px; }
+
+    .rank-badge {
+        width: 40px; height: 40px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 800; font-size: 16px; color: #64748b;
+        margin: 0 auto;
+    }
+    .top-1 { background: #fef3c7; color: #92400e; font-size: 24px; }
+    .top-2 { background: #f1f5f9; color: #475569; font-size: 24px; }
+    .top-3 { background: #ffedd5; color: #9a3412; font-size: 24px; }
+
+    .score-pill {
+        display: inline-flex; align-items: baseline; gap: 4px;
+        background: #eff6ff; color: #2563eb;
+        padding: 8px 16px; border-radius: 12px; font-weight: 800;
+    }
+    .score-unit { font-size: 11px; opacity: 0.7; text-transform: uppercase; }
+    .score-val { font-size: 18px; }
+
+    .w-100px { width: 100px; }
+    .leaderboard-table .form-check-input { width: 20px; height: 20px; cursor: pointer; }
+</style>
+
+@section Scripts {
+    <script>
+        function toggleAll(source) {
+            const checkboxes = document.querySelectorAll('.sv-check');
+            checkboxes.forEach(cb => cb.checked = source.checked);
+            updateSelection();
+        }
+
+        function updateSelection() {
+            const selected = document.querySelectorAll('.sv-check:checked');
+            const bar = document.getElementById('rewardBar');
+            const count = document.getElementById('selectedCount');
+            
+            if (selected.length > 0) {
+                bar.style.display = 'block';
+                count.textContent = selected.length;
+            } else {
+                bar.style.display = 'none';
+            }
+        }
+
+        function clearSelection() {
+            document.getElementById('selectAll').checked = false;
+            toggleAll(document.getElementById('selectAll'));
+        }
+
+        function processRewards() {
+            const selected = Array.from(document.querySelectorAll('.sv-check:checked')).map(cb => cb.value);
+            const pts = document.getElementById('rewardPoints').value;
+
+            if (selected.length === 0) return;
+
+            if (!confirm(`Bạn có chắc chắn muốn cộng ${pts} điểm cho ${selected.length} sinh viên đã chọn?`)) return;
+
+            $.post('@Url.Action("TraoThuong", "Home")', { selectedSv: selected, points: pts }, function(res) {
+                if (res.success) {
+                    alert(res.message);
+                    location.reload();
+                } else {
+                    alert(res.message);
+                }
+            });
+        }
+
+        function showRewardModal() {
+            // Có thể mở rộng thêm modal chi tiết, hiện tại dùng nhanh thanh bar
+            alert("Vui lòng chọn sinh viên trong danh sách bên dưới để bắt đầu tặng thưởng.");
+        }
+    </script>
+}

@@ -1,0 +1,323 @@
+@model HeThong_User.Areas.Admin.Models.CategorySeedViewModel
+@{
+    ViewData["Title"] = "Cập nhật danh mục";
+}
+
+<style>
+    /* Mở rộng tối đa không gian, phá bỏ giới hạn của container cha */
+    .admin-grid { display: grid; grid-template-columns: 500px 1fr; gap: 24px; align-items: start; width: 100%; max-width: 100%; font-size: 16px; }
+    .header { width: 100%; max-width: 100%; }
+    
+    /* Ghi đè padding/margin nếu cần để sát biên */
+    .content-container { width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+    .card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #fcfcfc; }
+    .card-header h3 { font-size: 16px; font-weight: 700; margin-bottom: 0; }
+    .card-body { padding: 15px; }
+
+    .tree-container { 
+        max-height: calc(100vh - 280px);
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+    
+    /* Tùy chỉnh thanh cuộn cho đẹp */
+    .tree-container::-webkit-scrollbar { width: 6px; }
+    .tree-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+    .tree-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .tree-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    .tree-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: background .2s; font-size: 16px; color: #475569; }
+    .tree-item:hover { background: #f1f5f9; }
+    .tree-item.active { background: #eff6ff; color: #2563eb; font-weight: 700; border-left: 4px solid #2563eb; border-radius: 0 8px 8px 0; }
+    
+    .tree-children { margin-left: 24px; padding-left: 10px; border-left: 1px dashed #cbd5e1; display: none; }
+    .tree-children.open { display: block; margin-top: 4px; }
+    
+    .icon { font-size: 18px; flex-shrink: 0; }
+    .btn-add-mini { background: #3b82f6; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 6px; text-transform: uppercase; }
+    .form-control { width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 15px; }
+    .btn-submit { width: 100%; background: #2563eb; color: #fff; border: none; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    
+    .table { width: 100%; border-collapse: collapse; }
+    .table th { padding: 12px; text-align: left; font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
+    .table td { padding: 14px 12px; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
+</style>
+
+<div class="header mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="h4 fw-bold mb-1">Cập nhật danh mục tài liệu</h1>
+        <div class="breadcrumb-custom">
+            <span class="b-item">Khoa</span>
+            <span class="b-sep">/</span>
+            <span class="b-item">Ngành</span>
+            <span class="b-sep">/</span>
+            <span class="b-item active">Môn học</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    .breadcrumb-custom { display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 6px 16px; border-radius: 20px; border: 1px solid #e2e8f0; width: fit-content; }
+    .b-item { font-size: 13px; font-weight: 600; color: #64748b; }
+    .b-item.active { color: #2563eb; }
+    .b-sep { color: #cbd5e1; font-size: 12px; }
+</style>
+
+<div class="admin-grid">
+    <div class="card">
+        <div class="card-header">
+            <h3>Cây danh mục</h3>
+            <button class="btn-add-mini" onclick="resetView()">+ Thêm mới</button>
+        </div>
+        <div class="card-body p-2">
+            <div id="treeContent" class="tree-container"></div>
+        </div>
+    </div>
+
+    <div id="rightContent">
+        <!-- Thông báo mặc định khi mới vào trang -->
+        <div class="card" id="welcomeBox">
+            <div class="card-body text-center p-5">
+                <div class="display-1 text-light mb-4">📂</div>
+                <h3 class="text-muted">Hệ thống quản lý danh mục</h3>
+                <p class="text-muted">Vui lòng chọn một môn học để chỉnh sửa hoặc bấm <b>+ Thêm mới</b> để tạo danh mục.</p>
+            </div>
+        </div>
+
+        <!-- Default: Add Forms (Ẩn mặc định) -->
+        <div class="card" id="addForms" style="display:none;">
+            <div class="card-header">
+                <h3>Thêm danh mục mới</h3>
+                <button class="btn btn-sm btn-outline-secondary" onclick="cancelAction()">Hủy</button>
+            </div>
+            <div class="card-body">
+                <div class="mb-4 pb-4 border-bottom">
+                    <div class="fw-bold mb-3">Thêm ngành</div>
+                    <div class="form-group">
+                        <label>Tên ngành</label>
+                        <input type="text" id="newNganhName" class="form-control" placeholder="Nhập tên ngành..." />
+                    </div>
+                    <div class="form-group">
+                        <label>Thuộc khoa</label>
+                        <select id="newNganhKhoa" class="form-control"></select>
+                    </div>
+                    <button class="btn-submit" onclick="createNganh()">+ Thêm ngành</button>
+                </div>
+                <div>
+                    <div class="fw-bold mb-3">Thêm môn học</div>
+                    <div class="form-group">
+                        <label>Tên môn học</label>
+                        <input type="text" id="newMonName" class="form-control" placeholder="Nhập tên môn học..." />
+                    </div>
+                    <div class="form-group">
+                        <label>Thuộc ngành</label>
+                        <select id="newMonNganh" class="form-control"></select>
+                    </div>
+                    <button class="btn-submit" onclick="createMon()">+ Thêm môn học</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail: Edit and List -->
+        <div id="detailPane" style="display:none;">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Chỉnh sửa môn học</h3>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="cancelAction()">Hủy</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteMon()">Xóa môn</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Tên môn học</label>
+                        <input type="text" id="editMonName" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Ngành quản lý</label>
+                        <select id="editMonNganh" class="form-control"></select>
+                    </div>
+                    <button class="btn-submit" onclick="updateMon()">Cập nhật thay đổi</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Tài liệu thuộc danh mục này</h3></div>
+                <div class="card-body p-0">
+                    <table class="table" id="docTable">
+                        <thead>
+                            <tr>
+                                <th>Tên tài liệu</th>
+                                <th>Người đăng</th>
+                                <th class="text-center">Lượt tải</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const db = @Html.Raw(Model.SeedJson);
+    let selectedMonId = null;
+    let openNodes = new Set(); // Lưu trữ trạng thái các node đang mở
+
+    function init() {
+        renderTree();
+        fillSelects();
+    }
+
+    function fillSelects() {
+        const khoaSel = document.getElementById('newNganhKhoa');
+        const nganhSel = document.getElementById('newMonNganh');
+        const editNganhSel = document.getElementById('editMonNganh');
+        
+        db.khoa.forEach(k => khoaSel.innerHTML += `<option value="${k.maKhoa}">${k.tenKhoa}</option>`);
+        db.nganh.forEach(n => {
+            const opt = `<option value="${n.maNganh}">${n.tenNganh}</option>`;
+            nganhSel.innerHTML += opt;
+            editNganhSel.innerHTML += opt;
+        });
+    }
+
+    function renderTree() {
+        const container = document.getElementById('treeContent');
+        let html = "";
+        db.khoa.forEach(k => {
+            const nganhs = db.nganh.filter(n => n.maKhoa === k.maKhoa);
+            const isOpen = openNodes.has(k.maKhoa) ? 'open' : '';
+            html += `
+                <div class="tree-node">
+                    <div class="tree-item" onclick="toggleNode('${k.maKhoa}')">
+                        <span class="icon">📕</span>
+                        <span class="fw-bold">Khoa ${k.tenKhoa}</span>
+                    </div>
+                    <div class="tree-children ${isOpen}" id="child-${k.maKhoa}">
+                        ${nganhs.map(n => {
+                            const mons = db.monHoc.filter(m => m.maNganh === n.maNganh);
+                            const isNganhOpen = openNodes.has(n.maNganh) ? 'open' : '';
+                            return `
+                                <div class="tree-node">
+                                    <div class="tree-item" onclick="toggleNode('${n.maNganh}')">
+                                        <span class="icon">📂</span>
+                                        <span>${n.tenNganh}</span>
+                                    </div>
+                                    <div class="tree-children ${isNganhOpen}" id="child-${n.maNganh}">
+                                        ${mons.map(m => `
+                                            <div class="tree-item ${selectedMonId === m.maMonHoc ? 'active' : ''}" onclick="selectMon('${m.maMonHoc}', '${n.maNganh}', '${k.maKhoa}')">
+                                                <span class="icon">📄</span>
+                                                <span>${m.tenMonHoc}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    window.toggleNode = (id) => {
+        const el = document.getElementById(`child-${id}`);
+        if(el) {
+            el.classList.toggle("open");
+            if(el.classList.contains("open")) openNodes.add(id);
+            else openNodes.delete(id);
+        }
+    };
+
+    window.selectMon = (id, nganhId, khoaId) => {
+        selectedMonId = id;
+        // Đảm bảo node cha luôn mở khi chọn
+        openNodes.add(nganhId);
+        openNodes.add(khoaId);
+        
+        renderTree();
+        showDetail(id);
+    };
+
+    window.resetView = () => {
+        selectedMonId = null;
+        document.getElementById('welcomeBox').style.display = 'none';
+        document.getElementById('addForms').style.display = 'block';
+        document.getElementById('detailPane').style.display = 'none';
+        renderTree();
+    };
+
+    window.cancelAction = () => {
+        selectedMonId = null;
+        document.getElementById('welcomeBox').style.display = 'block';
+        document.getElementById('addForms').style.display = 'none';
+        document.getElementById('detailPane').style.display = 'none';
+        renderTree();
+    };
+
+    function showDetail(id) {
+        document.getElementById('welcomeBox').style.display = 'none';
+        document.getElementById('addForms').style.display = 'none';
+        document.getElementById('detailPane').style.display = 'block';
+        
+        const mon = db.monHoc.find(m => m.maMonHoc === id);
+        document.getElementById('editMonName').value = mon.tenMonHoc;
+        document.getElementById('editMonNganh').value = mon.maNganh;
+
+        const docs = db.taiLieu.filter(t => t.maMonHoc === id);
+        const tbody = document.querySelector('#docTable tbody');
+        tbody.innerHTML = docs.length === 0 ? '<tr><td colspan="4" class="text-center p-5 text-muted">Chưa có tài liệu trong môn học này</td></tr>' : docs.map(d => {
+            const u = db.sinhVien.find(s => s.maSV === d.maNguoiDang) || db.giangVien.find(g => g.maGV === d.maNguoiDang);
+            return `
+                <tr>
+                    <td><b class="text-dark">${d.tieuDe}</b></td>
+                    <td>${u?.hoTen || d.maNguoiDang}</td>
+                    <td class="text-center">${d.luotTai || 0}</td>
+                    <td><span class="badge bg-light text-dark border">${d.trangThaiDuyet}</span></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function post(url, body) {
+        try {
+            const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+            if(res.ok) window.location.reload();
+            else alert("Thao tác thất bại");
+        } catch(e) { alert("Lỗi kết nối: " + e); }
+    }
+
+    window.createNganh = () => {
+        const tenNganh = document.getElementById('newNganhName').value;
+        const maKhoa = document.getElementById('newNganhKhoa').value;
+        if(!tenNganh || !maKhoa) return alert("Nhập tên ngành và chọn khoa");
+        post('@Url.Action("ThemNganhAjax", "DanhMuc")', { tenNganh, maKhoa });
+    };
+
+    window.createMon = () => {
+        const tenMonHoc = document.getElementById('newMonName').value;
+        const maNganh = document.getElementById('newMonNganh').value;
+        if(!tenMonHoc || !maNganh) return alert("Nhập tên môn và chọn ngành");
+        post('@Url.Action("CreateCourse", "DanhMuc")', { tenMonHoc, maNganh });
+    };
+
+    window.updateMon = () => {
+        const tenMonHoc = document.getElementById('editMonName').value;
+        const maNganh = document.getElementById('editMonNganh').value;
+        post('@Url.Action("UpdateCourse", "DanhMuc")', { maMonHoc: selectedMonId, tenMonHoc, maNganh });
+    };
+
+    window.deleteMon = () => {
+        if(confirm("Xác nhận xóa môn học này?"))
+            post('@Url.Action("DeleteCourse", "DanhMuc")', { maMonHoc: selectedMonId });
+    };
+
+    init();
+</script>

@@ -1,0 +1,275 @@
+@model HeThong_User.Areas.Admin.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Tổng quan hệ thống";
+    var today = DateTime.Now.ToString("dd/M/yyyy");
+}
+
+<div class="content">
+    <!-- Page Header -->
+    <h1 class="page-title">Tổng quan hệ thống</h1>
+    <p class="page-subtitle">Chào mừng trở lại, @(Context.Session.GetString("AdminName") ?? "Quản trị viên") · Hôm nay: @today</p>
+
+    <!-- 3 Stat Cards chính -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue">📄</div>
+            <div class="stat-info">
+                <div class="stat-value">@Model.TongTaiLieu.ToString("N0")</div>
+                <div class="stat-label">Tổng tài liệu</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">📋</div>
+            <div class="stat-info">
+                <div class="stat-value">@Model.DangChoDuyet</div>
+                <div class="stat-label">Đang chờ duyệt</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">🎓</div>
+            <div class="stat-info">
+                <div class="stat-value">@Model.TongSinhVien.ToString("N0")</div>
+                <div class="stat-label">Sinh viên</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tài liệu theo khoa + Top sinh viên -->
+    <div class="two-col">
+        <!-- Biểu đồ tài liệu theo khoa -->
+        <div class="card">
+            <div class="card-header">
+                @{
+                    var adminRole = Context.Session.GetString("AdminRole")?.Trim();
+                    var chartTitle = adminRole == "VT004" ? "📊 Thống kê theo ngành" : "📊 Tài liệu theo khoa";
+                }
+                <h3>@chartTitle</h3>
+                <span class="chart-legend">
+                    <span class="legend-dot" style="background: #3b82f6;"></span> Số tài liệu
+                </span>
+            </div>
+            <div class="card-body">
+                @if (Model.TaiLieuTheoKhoas.Any())
+                {
+                    var maxCount = Model.TaiLieuTheoKhoas.Max(x => x.SoTaiLieu);
+                <div style="height: 300px; width: 100%;">
+                    <canvas id="khoaChart"></canvas>
+                </div>
+                }
+                else
+                {
+                    <div class="empty">Chưa có dữ liệu tài liệu theo khoa</div>
+                }
+            </div>
+        </div>
+
+        <!-- Top sinh viên tích cực -->
+        <div class="card">
+            <div class="card-header">
+                <h3>🏆 Top sinh viên tích cực</h3>
+            </div>
+            <table class="table-large">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Họ tên</th>
+                        <th>Điểm tích lũy</th>
+                        <th>Lớp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.TopSinhViens.Any())
+                    {
+                        var rank = 1;
+                        foreach (var sv in Model.TopSinhViens)
+                        {
+                            <tr>
+                                <td><span class="rank-num @(rank <= 3 ? (rank == 1 ? "gold" : rank == 2 ? "silver" : "bronze") : "")">@rank</span></td>
+                                <td><strong>@sv.TenSV</strong></td>
+                                <td>@sv.DiemTichLuy</td>
+                                <td><span class="badge approved">@sv.Lop</span></td>
+                            </tr>
+                            rank++;
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="4" class="empty">Chưa có dữ liệu</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Báo cáo vi phạm -->
+    <div class="card" style="margin-top: 20px;">
+        <div class="card-header">
+            <h3>🚨 Báo cáo vi phạm</h3>
+            <span class="chart-legend">
+                <span class="legend-dot" style="background: #f97316;"></span> Số báo cáo
+            </span>
+        </div>
+        <div class="card-body">
+            @if (Model.BaoCaoTheoLyDos.Any())
+            {
+                var maxBC = Model.BaoCaoTheoLyDos.Max(x => x.SoBaoCao);
+                <!-- Biểu đồ cột cam -->
+                <div style="height: 300px; width: 100%;">
+                    <canvas id="reportChart"></canvas>
+                </div>
+
+                <!-- Bảng thống kê -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Lý do</th>
+                            <th>Số báo cáo</th>
+                            <th>Chờ xử lý</th>
+                            <th>Đã xử lý</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var bc in Model.BaoCaoTheoLyDos)
+                        {
+                            <tr>
+                                <td><strong style="color: var(--primary);">@bc.LyDo</strong></td>
+                                <td><strong>@bc.SoBaoCao</strong></td>
+                                <td><span style="color: #f59e0b;">@bc.ChoXuLy</span></td>
+                                <td>@bc.DaXuLy</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="empty">Chưa có báo cáo vi phạm nào</div>
+            }
+        </div>
+    </div>
+
+    <!-- Xuất báo cáo -->
+    <div class="card" style="margin-top: 20px;">
+        <div class="card-header">
+            <h3>📥 Xuất báo cáo</h3>
+        </div>
+        <div class="card-body">
+            <form class="export-form" method="post" asp-action="XuatBaoCao">
+                <div class="export-row">
+                    <div class="form-group">
+                        <label>Loại báo cáo</label>
+                        <select name="LoaiBaoCao">
+                            <option value="TaiLieu">Thống kê tài liệu</option>
+                            <option value="NguoiDung">Thống kê người dùng</option>
+                            <option value="ViPham">Báo cáo vi phạm</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Định dạng file</label>
+                        <select name="DinhDang">
+                            <option value="csv">CSV (.csv)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="export-row">
+                    <div class="form-group">
+                        <label>Từ ngày</label>
+                        <input type="date" name="TuNgay" value="2026-01-01" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Đến ngày</label>
+                        <input type="date" name="DenNgay" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-action btn-export" style="width:100%; justify-content:center;">Xuất báo cáo</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Data từ Model
+        const khoaData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TaiLieuTheoKhoas));
+        const reportData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BaoCaoTheoLyDos));
+
+        // 1. Biểu đồ tài liệu theo khoa
+        new Chart(document.getElementById('khoaChart'), {
+            type: 'bar',
+            data: {
+                labels: khoaData.map(x => x.TenKhoa.length > 15 ? x.TenKhoa.substring(0, 15) + '...' : x.TenKhoa),
+                datasets: [{
+                    label: 'Số tài liệu',
+                    data: khoaData.map(x => x.SoTaiLieu),
+                    backgroundColor: khoaData.map(x => x.MauSac || '#3b82f6'),
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    maxBarThickness: 60
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => khoaData[items[0].dataIndex].TenKhoa
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { drawBorder: false } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 2. Biểu đồ báo cáo vi phạm
+        new Chart(document.getElementById('reportChart'), {
+            type: 'bar',
+            data: {
+                labels: reportData.map(x => x.LyDo),
+                datasets: [{
+                    label: 'Số báo cáo',
+                    data: reportData.map(x => x.SoBaoCao),
+                    backgroundColor: 'rgba(249, 115, 22, 0.8)',
+                    borderColor: '#f97316',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    </script>
+    <style>
+        .table-large th {
+            padding: 16px 20px;
+            font-size: 13px;
+        }
+        .table-large td {
+            padding: 18px 20px;
+            font-size: 15px;
+        }
+        .table-large .badge {
+            padding: 5px 14px;
+            font-size: 12px;
+        }
+        .table-large .rank-num {
+            font-size: 16px;
+        }
+        .card-header h3 {
+            font-size: 16px;
+        }
+    </style>
+}
