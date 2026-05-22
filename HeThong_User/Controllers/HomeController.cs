@@ -39,9 +39,9 @@ namespace HeThong_User.Controllers
 
         public IActionResult Index()
         {
-            // Nếu là Admin hoặc Cán bộ khoa, tự động chuyển về trang quản trị
+            // Nếu là Admin hoặc Cán bộ khoa hoặc Giảng viên, tự động chuyển về trang quản trị
             var maVaiTro = HttpContext.Session.GetString("MaVaiTro");
-            if (maVaiTro?.Trim() == "VT001" || maVaiTro?.Trim() == "VT004")
+            if (maVaiTro?.Trim() == "VT001" || maVaiTro?.Trim() == "VT004" || maVaiTro?.Trim() == "VT002")
             {
                 return RedirectToAction("Index", "Home", new { area = "Admin" });
             }

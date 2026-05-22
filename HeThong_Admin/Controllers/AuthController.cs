@@ -51,8 +51,8 @@ namespace HeThong_Admin.Controllers
                     return View();
                 }
 
-                // Kiểm tra vai trò: Chỉ cho phép VT001 (Admin) và VT004 (Cán bộ khoa)
-                if (taiKhoan.MaVaiTro?.Trim() != "VT001" && taiKhoan.MaVaiTro?.Trim() != "VT004")
+                // Kiểm tra vai trò: Chỉ cho phép VT001 (Admin), VT004 (Cán bộ khoa) và VT002 (Giảng viên)
+                if (taiKhoan.MaVaiTro?.Trim() != "VT001" && taiKhoan.MaVaiTro?.Trim() != "VT004" && taiKhoan.MaVaiTro?.Trim() != "VT002")
                 {
                     ViewBag.Error = "Tài khoản của bạn không có quyền truy cập trang quản trị.";
                     return View();
@@ -71,8 +71,8 @@ namespace HeThong_Admin.Controllers
                 HttpContext.Session.SetString("AdminRole", taiKhoan.MaVaiTro?.Trim() ?? "");
                 HttpContext.Session.SetString("RoleName", taiKhoan.MaVaiTroNavigation?.TenVaiTro ?? "Quản trị");
 
-                // Lấy thêm thông tin chi tiết nếu là Cán bộ khoa (Giảng viên)
-                if (taiKhoan.MaVaiTro?.Trim() == "VT004")
+                // Lấy thêm thông tin chi tiết nếu là Cán bộ khoa hoặc Giảng viên
+                if (taiKhoan.MaVaiTro?.Trim() == "VT004" || taiKhoan.MaVaiTro?.Trim() == "VT002")
                 {
                     var gv = await _context.GiangViens
                         .Include(g => g.MaKhoaNavigation)

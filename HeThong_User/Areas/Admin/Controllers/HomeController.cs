@@ -31,7 +31,7 @@ namespace HeThong_User.Areas.Admin.Controllers
             var colors = new[] { "#3b82f6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6" };
 
             string? maKhoaCBK = null;
-            if (adminRole == "VT004")
+            if (adminRole == "VT004" || adminRole == "VT002")
             {
                 var tk = await _context.TaiKhoans
                     .Include(x => x.MaGvNavigation)

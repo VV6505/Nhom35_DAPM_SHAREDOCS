@@ -28,7 +28,7 @@ namespace HeThong_Admin.Controllers
                 .AsQueryable();
 
             // Phân quyền hiển thị: Cán bộ khoa chỉ thấy bài của khoa mình, Admin thấy bài từ khoa gửi lên
-            if (adminRole == "VT004") 
+            if (adminRole == "VT004" || adminRole == "VT002") 
             {
                 var tk = await _context.TaiKhoans.Include(x => x.MaGvNavigation).FirstOrDefaultAsync(x => x.MaTk == adminId);
                 var maKhoaCBK = tk?.MaGvNavigation?.MaKhoa;
@@ -111,7 +111,7 @@ namespace HeThong_Admin.Controllers
             if (tl != null)
             {
                 // Nếu Khoa duyệt -> Đẩy lên cho Admin xác nhận. Nếu Admin duyệt -> Cho phép hiển thị luôn.
-                if (adminRole == "VT004") 
+                if (adminRole == "VT004" || adminRole == "VT002") 
                 {
                     tl.TrangThaiDuyet = "Chờ Admin duyệt";
                 }
@@ -129,7 +129,7 @@ namespace HeThong_Admin.Controllers
                 {
                     MaTb = nextTB_AP,
                     TieuDe = "Kết quả phê duyệt",
-                    NoiDung = adminRole == "VT004" 
+                    NoiDung = (adminRole == "VT004" || adminRole == "VT002")
                         ? $"Tài liệu '{tl.TieuDe}' đã được Khoa duyệt, chờ Admin xác nhận."
                         : $"Chúc mừng! Tài liệu '{tl.TieuDe}' của bạn đã được phê duyệt.",
                     NgayTao = DateTime.Now,

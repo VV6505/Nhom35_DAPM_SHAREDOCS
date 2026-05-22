@@ -145,7 +145,7 @@
                     <i class="nav-icon">☁️</i> Sao lưu dữ liệu
                 </a>
             }
-            else if (adminRole == "VT004") // CÁN BỘ KHOA
+            else if (adminRole == "VT004" || adminRole == "VT002") // CÁN BỘ KHOA / GIẢNG VIÊN
             {
                 <div class="nav-group-label">KIỂM DUYỆT</div>
                 <a class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "ReviewCBK" ? "active" : "")"

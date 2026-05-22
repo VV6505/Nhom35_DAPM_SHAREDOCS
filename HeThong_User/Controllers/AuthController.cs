@@ -22,7 +22,7 @@ namespace HeThong_User.Controllers
             var maVaiTro = HttpContext.Session.GetString("MaVaiTro");
             if (!string.IsNullOrEmpty(maVaiTro))
             {
-                if (maVaiTro.Trim() == "VT001" || maVaiTro.Trim() == "VT004")
+                if (maVaiTro.Trim() == "VT001" || maVaiTro.Trim() == "VT004" || maVaiTro.Trim() == "VT002")
                 {
                     return RedirectToAction("Index", "Home", new { area = "Admin" });
                 }
@@ -178,7 +178,7 @@ namespace HeThong_User.Controllers
                     HttpContext.Session.SetString("DiemTichLuy", "0");
 
                     // Set Admin-specific session variables for Admin Area
-                    if (taiKhoan.MaVaiTro?.Trim() == "VT001" || taiKhoan.MaVaiTro?.Trim() == "VT004")
+                    if (taiKhoan.MaVaiTro?.Trim() == "VT001" || taiKhoan.MaVaiTro?.Trim() == "VT004" || taiKhoan.MaVaiTro?.Trim() == "VT002")
                     {
                         HttpContext.Session.SetString("AdminId", taiKhoan.MaTk ?? "");
                         HttpContext.Session.SetString("AdminName", taiKhoan.TenTk ?? "Admin");
@@ -241,8 +241,8 @@ namespace HeThong_User.Controllers
                 
                 string redirectUrl = Url.Action("Index", "Home") ?? "/";
                 
-                // Nếu là Admin hoặc Cán bộ khoa, ưu tiên chuyển về trang quản trị
-                if (taiKhoan.MaVaiTro?.Trim() == "VT001" || taiKhoan.MaVaiTro?.Trim() == "VT004")
+                // Nếu là Admin hoặc Cán bộ khoa hoặc Giảng viên, ưu tiên chuyển về trang quản trị
+                if (taiKhoan.MaVaiTro?.Trim() == "VT001" || taiKhoan.MaVaiTro?.Trim() == "VT004" || taiKhoan.MaVaiTro?.Trim() == "VT002")
                 {
                     redirectUrl = Url.Action("Index", "Home", new { area = "Admin" }) ?? "/Admin/Home/Index";
                 }
