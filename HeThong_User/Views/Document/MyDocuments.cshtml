@@ -274,21 +274,39 @@
 
 <div class="documents-container">
     <div class="documents-header">
-        <h1 class="documents-title">📂 Tài liệu cá nhân</h1>
+        <h1 class="documents-title">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            Tài liệu cá nhân
+        </h1>
         <p class="documents-subtitle">Quản lý tài liệu đã đăng, đã lưu và đã tải xuống</p>
     </div>
 
     <div class="documents-tabs">
         <button class="documents-tab active" onclick="switchTab('uploads', event)">
-            📤 Đã đăng
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Đã đăng
             <span class="documents-tab-badge" id="uploadsCount">0</span>
         </button>
         <button class="documents-tab" onclick="switchTab('saved', event)">
-            ❤️ Đã lưu
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            Đã lưu
             <span class="documents-tab-badge" id="savedCount">0</span>
         </button>
         <button class="documents-tab" onclick="switchTab('downloads', event)">
-            📥 Đã tải xuống
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Đã tải xuống
             <span class="documents-tab-badge" id="downloadsCount">0</span>
         </button>
     </div>
@@ -351,7 +369,13 @@
             console.error('Lỗi khi tải tài liệu đã đăng:', error);
             document.getElementById('uploadsContent').innerHTML = `
                 <div class="documents-empty">
-                    <div class="documents-empty-icon">❌</div>
+                    <div class="documents-empty-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                    </div>
                     <div class="documents-empty-text">Có lỗi xảy ra khi tải dữ liệu</div>
                 </div>
             `;
@@ -372,7 +396,13 @@
             console.error('Lỗi khi tải tài liệu đã lưu:', error);
             document.getElementById('savedContent').innerHTML = `
                 <div class="documents-empty">
-                    <div class="documents-empty-icon">❌</div>
+                    <div class="documents-empty-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                    </div>
                     <div class="documents-empty-text">Có lỗi xảy ra khi tải dữ liệu</div>
                 </div>
             `;
@@ -393,7 +423,13 @@
             console.error('Lỗi khi tải lịch sử tải xuống:', error);
             document.getElementById('downloadsContent').innerHTML = `
                 <div class="documents-empty">
-                    <div class="documents-empty-icon">❌</div>
+                    <div class="documents-empty-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                    </div>
                     <div class="documents-empty-text">Có lỗi xảy ra khi tải dữ liệu</div>
                 </div>
             `;
@@ -406,7 +442,11 @@
         if (uploadsData.length === 0) {
             container.innerHTML = `
                 <div class="documents-empty">
-                    <div class="documents-empty-icon">📭</div>
+                    <div class="documents-empty-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
                     <div class="documents-empty-text">Bạn chưa đăng tài liệu nào</div>
                 </div>
             `;
@@ -428,7 +468,11 @@
         if (savedData.length === 0) {
             container.innerHTML = `
                 <div class="documents-empty">
-                    <div class="documents-empty-icon">💔</div>
+                    <div class="documents-empty-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                    </div>
                     <div class="documents-empty-text">Bạn chưa lưu tài liệu nào</div>
                 </div>
             `;
@@ -450,7 +494,13 @@
         if (downloadsData.length === 0) {
             container.innerHTML = `
                 <div class="documents-empty">
-                    <div class="documents-empty-icon">📥</div>
+                    <div class="documents-empty-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                    </div>
                     <div class="documents-empty-text">Bạn chưa tải xuống tài liệu nào</div>
                 </div>
             `;
@@ -492,7 +542,9 @@
             const savedTime = new Date(extraTime);
             timeInfo = `
                 <div class="download-time">
-                    <span>❤️</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
                     <span>Đã lưu: ${savedTime.toLocaleDateString('vi-VN')} ${savedTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
             `;
@@ -500,7 +552,11 @@
             const downloadTime = new Date(extraTime);
             timeInfo = `
                 <div class="download-time">
-                    <span>📥</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
                     <span>Tải xuống: ${downloadTime.toLocaleDateString('vi-VN')} ${downloadTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
             `;
@@ -518,13 +574,19 @@
                 <div class="document-meta">
                     ${doc.tenMonHoc ? `
                         <div class="document-meta-item">
-                            <span>📚</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                            </svg>
                             <span>${doc.tenMonHoc}</span>
                         </div>
                     ` : ''}
                     ${doc.loaiTaiLieu ? `
                         <div class="document-meta-item">
-                            <span>📑</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
                             <span>${doc.loaiTaiLieu}</span>
                         </div>
                     ` : ''}
@@ -535,16 +597,24 @@
                 <div class="document-footer">
                     <div class="document-stats">
                         <div class="document-stat">
-                            <span>📥</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
                             <span>${doc.luotTai || 0}</span>
                         </div>
                         <div class="document-stat">
-                            <span>📦</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            </svg>
                             <span>${fileSize}</span>
                         </div>
                         ${doc.diemYeuCau ? `
                             <div class="document-stat">
-                                <span>⭐</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
                                 <span>${doc.diemYeuCau}</span>
                             </div>
                         ` : ''}
@@ -558,13 +628,13 @@
     }
 
     function getFileIcon(loaiFile) {
-        if (!loaiFile) return '📄';
+        if (!loaiFile) return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
         const ext = loaiFile.toLowerCase();
-        if (ext.includes('pdf')) return '📕';
-        if (ext.includes('doc') || ext.includes('docx')) return '📘';
-        if (ext.includes('ppt') || ext.includes('pptx')) return '📙';
-        if (ext.includes('xls') || ext.includes('xlsx')) return '📗';
-        return '📄';
+        if (ext.includes('pdf')) return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>`;
+        if (ext.includes('doc') || ext.includes('docx')) return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+        if (ext.includes('ppt') || ext.includes('pptx')) return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><rect x="8" y="12" width="8" height="6"/></svg>`;
+        if (ext.includes('xls') || ext.includes('xlsx')) return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="17"/><line x1="16" y1="13" x2="8" y2="17"/></svg>`;
+        return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
     }
 
     function getFileIconClass(loaiFile) {

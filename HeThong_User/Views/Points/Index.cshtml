@@ -9,53 +9,6 @@
         padding: 24px;
     }
 
-    .points-hero {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 20px;
-        padding: 48px;
-        color: white;
-        margin-bottom: 32px;
-        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .points-hero::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -10%;
-        width: 400px;
-        height: 400px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
-    }
-
-    .points-hero-content {
-        position: relative;
-        z-index: 1;
-        text-align: center;
-    }
-
-    .points-hero-title {
-        font-size: 18px;
-        font-weight: 600;
-        opacity: 0.9;
-        margin-bottom: 16px;
-    }
-
-    .points-hero-value {
-        font-size: 72px;
-        font-weight: 900;
-        margin-bottom: 8px;
-        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .points-hero-subtitle {
-        font-size: 16px;
-        opacity: 0.9;
-    }
-
     .points-stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -95,18 +48,26 @@
 
     .points-stat-icon.green {
         background: #e8f5e9;
+        color: #2e7d32;
     }
 
     .points-stat-icon.red {
         background: #ffebee;
+        color: #c62828;
     }
 
     .points-stat-icon.blue {
         background: #e3f2fd;
+        color: #1976d2;
     }
 
     .points-stat-icon.purple {
         background: #f3e5f5;
+        color: #7b1fa2;
+    }
+
+    .points-stat-icon svg {
+        stroke: currentColor;
     }
 
     .points-stat-label {
@@ -305,38 +266,19 @@
     @@keyframes spin {
         to { transform: rotate(360deg); }
     }
-
-    .rank-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 700;
-        color: #8b6914;
-        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-    }
 </style>
 
 <div class="points-container">
-    <!-- Hero Section -->
-    <div class="points-hero">
-        <div class="points-hero-content">
-            <div class="points-hero-title">Tổng điểm tích lũy của bạn</div>
-            <div class="points-hero-value" id="heroPoints">
-                <span class="loading-skeleton" style="display: inline-block; width: 200px; height: 72px;"></span>
-            </div>
-            <div class="points-hero-subtitle" id="heroRank">Đang tải xếp hạng...</div>
-        </div>
-    </div>
-
     <!-- Stats Grid -->
     <div class="points-stats-grid">
         <div class="points-stat-card">
             <div class="points-stat-header">
-                <div class="points-stat-icon green">📚</div>
+                <div class="points-stat-icon blue">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                </div>
                 <div>
                     <div class="points-stat-label">Điểm học kỳ hiện tại</div>
                 </div>
@@ -347,7 +289,12 @@
 
         <div class="points-stat-card">
             <div class="points-stat-header">
-                <div class="points-stat-icon blue">🏆</div>
+                <div class="points-stat-icon blue">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="8" r="7"/>
+                        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+                    </svg>
+                </div>
                 <div>
                     <div class="points-stat-label">Xếp hạng</div>
                 </div>
@@ -358,7 +305,12 @@
 
         <div class="points-stat-card">
             <div class="points-stat-header">
-                <div class="points-stat-icon purple">📝</div>
+                <div class="points-stat-icon blue">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </div>
                 <div>
                     <div class="points-stat-label">Số bài đã đăng</div>
                 </div>
@@ -372,7 +324,10 @@
     <div class="points-history-card">
         <div class="points-history-header">
             <h2 class="points-history-title">
-                <span>📜</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
                 <span>Lịch sử cộng điểm</span>
             </h2>
             <div class="points-filter">
@@ -446,19 +401,6 @@
     }
 
     function displayStats(data) {
-        // Hero
-        document.getElementById('heroPoints').textContent = data.tongDiem.toLocaleString();
-        
-        const rankText = data.xepHang <= 10 
-            ? `Top ${Math.round(data.xepHang / data.tongSinhVien * 100)}% - Xếp hạng ${data.xepHang}/${data.tongSinhVien}`
-            : `Xếp hạng ${data.xepHang}/${data.tongSinhVien}`;
-        document.getElementById('heroRank').innerHTML = `
-            <span class="rank-badge">
-                <span>${data.xepHang <= 3 ? '🥇' : data.xepHang <= 10 ? '🥈' : '🥉'}</span>
-                <span>${rankText}</span>
-            </span>
-        `;
-
         // Stats
         document.getElementById('statDiemHocKy').textContent = data.diemHocKyHienTai.toLocaleString();
         document.getElementById('statTenHocKy').textContent = data.tenHocKyHienTai || 'Chưa có học kỳ';
@@ -473,7 +415,13 @@
         if (!history || history.length === 0) {
             container.innerHTML = `
                 <div class="points-empty">
-                    <div class="points-empty-icon">📭</div>
+                    <div class="points-empty-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                    </div>
                     <div class="points-empty-text">Chưa có lịch sử cộng điểm</div>
                 </div>
             `;
@@ -498,17 +446,26 @@
                                 </div>
                                 <div class="points-timeline-meta">
                                     <div class="points-timeline-meta-item">
-                                        <span>📅</span>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <polyline points="12 6 12 12 16 14"/>
+                                        </svg>
                                         <span>${date}</span>
                                     </div>
                                     ${item.hocKy ? `
                                         <div class="points-timeline-meta-item">
-                                            <span>📚</span>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                                            </svg>
                                             <span>${item.hocKy}</span>
                                         </div>
                                     ` : ''}
                                     <div class="points-timeline-meta-item">
-                                        <span>💰</span>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="1" x2="12" y2="23"/>
+                                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                        </svg>
                                         <span>Tổng: ${item.diemSauThayDoi || 0} điểm</span>
                                     </div>
                                 </div>
