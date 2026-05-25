@@ -2,6 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using HeThong_User.Models;
 var builder = WebApplication.CreateBuilder(args);
 
+// Giảm log output trong terminal
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Warning); // Chỉ hiển thị Warning và Error
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
@@ -25,72 +30,16 @@ var app = builder.Build();
 // Test database connection
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>();
-    var context = services.GetRequiredService<HeThongChiaSeTaiLieu_V1>();
+    var context = scope.ServiceProvider.GetRequiredService<HeThongChiaSeTaiLieu_V1>();
     
     try
     {
-        logger.LogInformation("========================================");
-        logger.LogInformation("🔍 ĐANG KIỂM TRA KẾT NỐI DATABASE...");
-        logger.LogInformation("========================================");
-        
-        // Test connection
         var canConnect = await context.Database.CanConnectAsync();
-        
-        if (canConnect)
-        {
-            logger.LogInformation("✅ KẾT NỐI DATABASE THÀNH CÔNG!");
-            
-            // Lấy thông tin database
-            var connectionString = context.Database.GetConnectionString();
-            logger.LogInformation($"📊 Connection String: {connectionString}");
-            
-            // Đếm số tài khoản
-            var soTaiKhoan = await context.TaiKhoans.CountAsync();
-            logger.LogInformation($"👤 Số tài khoản trong database: {soTaiKhoan}");
-            
-            // Đếm số sinh viên
-            var soSinhVien = await context.SinhViens.CountAsync();
-            logger.LogInformation($"🎓 Số sinh viên: {soSinhVien}");
-            
-            // Lấy danh sách username
-            var usernames = await context.TaiKhoans
-                .Select(t => t.TenTk)
-                .Take(5)
-                .ToListAsync();
-            logger.LogInformation($"📝 Một số username có sẵn: {string.Join(", ", usernames)}");
-            
-            logger.LogInformation("========================================");
-        }
-        else
-        {
-            logger.LogError("❌ KHÔNG THỂ KẾT NỐI DATABASE!");
-            logger.LogError("Vui lòng kiểm tra:");
-            logger.LogError("1. SQL Server đang chạy");
-            logger.LogError("2. Connection string trong appsettings.json");
-            logger.LogError("3. Database đã được tạo");
-            logger.LogInformation("========================================");
-        }
+        Console.WriteLine(canConnect ? "✅ Database: Kết nối thành công" : "❌ Database: Không thể kết nối");
     }
     catch (Exception ex)
     {
-        logger.LogError("❌ LỖI KHI KẾT NỐI DATABASE!");
-        logger.LogError($"Chi tiết lỗi: {ex.Message}");
-        logger.LogError($"Inner Exception: {ex.InnerException?.Message}");
-        logger.LogError($"Stack Trace: {ex.StackTrace}");
-        
-        // Hiển thị toàn bộ exception chain
-        var innerEx = ex.InnerException;
-        int level = 1;
-        while (innerEx != null)
-        {
-            logger.LogError($"Inner Exception Level {level}: {innerEx.Message}");
-            innerEx = innerEx.InnerException;
-            level++;
-        }
-        
-        logger.LogInformation("========================================");
+        Console.WriteLine($"❌ Database: {ex.InnerException?.Message ?? ex.Message}");
     }
 }
 

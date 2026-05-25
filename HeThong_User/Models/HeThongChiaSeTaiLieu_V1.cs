@@ -54,7 +54,15 @@ public partial class HeThongChiaSeTaiLieu_V1 : DbContext
     public virtual DbSet<VaiTro> VaiTros { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSqlServer("Data Source=THIEUQUANG;Initial Catalog=SHAREDOCS;Integrated Security=True;Trust Server Certificate=True");
+    {
+        // Không cần hardcode connection string ở đây
+        // Connection string sẽ được inject từ Program.cs qua constructor
+        if (!optionsBuilder.IsConfigured)
+        {
+            // Fallback nếu không có options được inject (chỉ dùng khi test)
+            optionsBuilder.UseSqlServer("Data Source=DESKTOP-991F2DU\\KIEUOANH;Initial Catalog=SHAREDOCS;Integrated Security=True;TrustServerCertificate=True");
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

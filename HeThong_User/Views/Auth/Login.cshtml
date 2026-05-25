@@ -165,9 +165,12 @@
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 20px;
             opacity: 0.6;
             transition: opacity 0.2s;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .password-toggle:hover {
@@ -291,19 +294,33 @@
                 @if (TempData["SuccessMessage"] != null)
                 {
                     <div class="alert alert-success">
-                        ✓ @TempData["SuccessMessage"]
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align: middle; margin-right: 6px;">
+                            <circle cx="12" cy="12" r="10" stroke="#2e7d32" stroke-width="2" fill="none"/>
+                            <path d="M8 12l3 3 5-6" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        </svg>
+                        @TempData["SuccessMessage"]
                     </div>
                 }
 
                 @if (TempData["ErrorMessage"] != null)
                 {
                     <div class="alert alert-danger">
-                        ✗ @TempData["ErrorMessage"]
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align: middle; margin-right: 6px;">
+                            <circle cx="12" cy="12" r="10" stroke="#c62828" stroke-width="2" fill="none"/>
+                            <path d="M15 9l-6 6M9 9l6 6" stroke="#c62828" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        @TempData["ErrorMessage"]
                     </div>
                 }
 
                 <div class="info-box">
-                    <h4>ℹ️ Hướng dẫn đăng nhập</h4>
+                    <h4>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="vertical-align: middle; margin-right: 4px;">
+                            <circle cx="8" cy="8" r="7" stroke="#1976d2" stroke-width="2"/>
+                            <path d="M8 4v5M8 11h.01" stroke="#1976d2" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Hướng dẫn đăng nhập
+                    </h4>
                     <p>Sử dụng <strong>Mã Sinh viên</strong> hoặc <strong>Mã Giảng viên</strong> để đăng nhập.</p>
                     <p>Mật khẩu mặc định là <code>123456</code>.</p>
                 </div>
@@ -311,7 +328,7 @@
                 <form asp-action="Login" method="post" id="loginForm">
                     @Html.AntiForgeryToken()
                     <div class="form-group">
-                        <label for="username">Tên đăng nhập (Mã SV/GV)</label>
+                        <label for="username">Mã tài khoản</label>
                         <input type="text" id="username" name="username" class="form-control" 
                                placeholder="Nhập mã sinh viên hoặc giảng viên" required autofocus />
                     </div>
@@ -322,7 +339,10 @@
                             <input type="password" id="password" name="password" class="form-control" 
                                    placeholder="Nhập mật khẩu" required />
                             <button type="button" class="password-toggle" onclick="togglePassword()">
-                                👁️
+                                <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 5C7 5 2.73 8.11 1 12.5 2.73 16.89 7 20 12 20s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="#666"/>
+                                    <circle cx="12" cy="12.5" r="2.5" fill="#666"/>
+                                </svg>
                             </button>
                         </div>
                     </div>
@@ -336,7 +356,12 @@
                     </div>
 
                     <button type="submit" class="btn-login">
-                        🔐 Đăng nhập
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align: middle; margin-right: 6px;">
+                            <rect x="5" y="11" width="14" height="10" rx="2" stroke="white" stroke-width="2"/>
+                            <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="12" cy="16" r="1.5" fill="white"/>
+                        </svg>
+                        Đăng nhập
                     </button>
                 </form>
             </div>
@@ -350,10 +375,23 @@
     <script>
         function togglePassword() {
             const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
+                // Icon mắt có gạch chéo (ẩn)
+                eyeIcon.innerHTML = `
+                    <path d="M12 5C7 5 2.73 8.11 1 12.5c.84 2.14 2.43 3.96 4.5 5.18M12 5c5 0 9.27 3.11 11 7.5-.39 1-.97 1.94-1.69 2.78" stroke="#666" stroke-width="2" stroke-linecap="round" fill="none"/>
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" stroke="#666" stroke-width="2" stroke-linecap="round" fill="none"/>
+                    <line x1="3" y1="3" x2="21" y2="21" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+                `;
             } else {
                 passwordInput.type = 'password';
+                // Icon mắt bình thường (hiện)
+                eyeIcon.innerHTML = `
+                    <path d="M12 5C7 5 2.73 8.11 1 12.5 2.73 16.89 7 20 12 20s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="#666"/>
+                    <circle cx="12" cy="12.5" r="2.5" fill="#666"/>
+                `;
             }
         }
 
@@ -384,7 +422,20 @@
             
             // Disable button và hiển thị loading
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '⏳ Đang đăng nhập...';
+            submitBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align: middle; margin-right: 6px; animation: spin 1s linear infinite;">
+                    <circle cx="12" cy="12" r="10" stroke="white" stroke-width="3" stroke-dasharray="31.4 31.4" stroke-linecap="round" fill="none"/>
+                </svg>
+                Đang đăng nhập...
+            `;
+            
+            // Thêm animation spin vào style nếu chưa có
+            if (!document.getElementById('spinAnimation')) {
+                const style = document.createElement('style');
+                style.id = 'spinAnimation';
+                style.textContent = '@@keyframes spin { to { transform: rotate(360deg); } }';
+                document.head.appendChild(style);
+            }
             
             console.log('🔄 Bắt đầu đăng nhập với AJAX...');
             
@@ -455,10 +506,21 @@
                 oldAlert.remove();
             }
             
+            // Icon cho alert
+            const icon = type === 'success' 
+                ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align: middle; margin-right: 6px;">
+                    <circle cx="12" cy="12" r="10" stroke="#2e7d32" stroke-width="2" fill="none"/>
+                    <path d="M8 12l3 3 5-6" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                   </svg>`
+                : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align: middle; margin-right: 6px;">
+                    <circle cx="12" cy="12" r="10" stroke="#c62828" stroke-width="2" fill="none"/>
+                    <path d="M15 9l-6 6M9 9l6 6" stroke="#c62828" stroke-width="2" stroke-linecap="round"/>
+                   </svg>`;
+            
             // Tạo alert mới
             const alert = document.createElement('div');
             alert.className = `alert alert-${type}`;
-            alert.innerHTML = type === 'success' ? `✓ ${message}` : `✗ ${message}`;
+            alert.innerHTML = `${icon}${message}`;
             
             // Thêm vào đầu login-body
             const loginBody = document.querySelector('.login-body');

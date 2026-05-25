@@ -141,15 +141,26 @@ body {
 .nav-group-label {
     font-size: 11px;
     font-weight: 800;
-    color: #94a3b8;
+    color: #1e293b;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    padding: 24px 20px 8px;
-    display: block;
+    padding: 16px 20px 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
 }
 
 .nav-group-label:first-child {
     padding-top: 12px;
+    margin-top: 0;
+}
+
+.nav-group-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
 }
 
 .sidebar nav {
@@ -159,34 +170,44 @@ body {
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 14px 20px;
+    gap: 12px;
+    padding: 12px 16px;
     cursor: pointer;
-    color: #475569;
+    color: #475569 !important;
     font-size: 15px;
-    font-weight: 600;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    transition: all 0.15s;
     text-decoration: none;
     margin: 4px 8px;
-    border-radius: 12px;
+    border-radius: 8px;
     position: relative;
 }
 
+.nav-item svg {
+    flex-shrink: 0;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+.nav-item span {
+    flex: 1;
+}
+
 .nav-item:hover {
-    background: #f1f5f9;
-    color: var(--primary);
-    transform: translateX(4px);
+    background: rgba(0, 77, 115, 0.05);
+    color: #004d73 !important;
+    transform: translateX(5px);
 }
 
 .nav-item.active {
-    background: linear-gradient(135deg, #0ea5e9, #0284c7);
-    color: #fff;
+    color: #004d73 !important;
+    background: #81D4FA;
     font-weight: 700;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    border-left: 4px solid #004d73;
 }
 
-.nav-item.active .nav-icon {
-    filter: brightness(0) invert(1);
+.nav-item.active svg {
+    stroke: #004d73;
 }
 
 .nav-icon {
@@ -1051,28 +1072,18 @@ tr:hover td {
     color: #ef4444;
 }
 
-/* Quick action chips in sidebar */
-.sidebar-footer {
+.nav-item.logout {
+    color: #e53935 !important;
     margin-top: auto;
-    padding: 14px 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.logout-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
-    border-radius: 7px;
-    cursor: pointer;
-    color: #f87171;
-    font-size: 13px;
-    font-weight: 500;
-    transition: background 0.15s;
+.nav-item.logout:hover {
+    background: #ffebee;
+    color: #e53935 !important;
 }
 
-.logout-btn:hover {
-    background: rgba(248, 113, 113, 0.1);
+.nav-item.logout svg {
+    stroke: #e53935;
 }
 
 /* Empty state */

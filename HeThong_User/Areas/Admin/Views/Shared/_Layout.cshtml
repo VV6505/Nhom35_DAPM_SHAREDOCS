@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - UTE Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/admin/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/HeThong_User.styles.css" asp-append-version="true" />
@@ -75,20 +76,30 @@
                         @if (!string.IsNullOrEmpty(adminEmail))
                         {
                             <div class="info-item">
-                                <i class="info-icon">📧</i>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                    <polyline points="22,6 12,13 2,6"/>
+                                </svg>
                                 <span>@adminEmail</span>
                             </div>
                         }
                         @if (!string.IsNullOrEmpty(adminFaculty))
                         {
                             <div class="info-item">
-                                <i class="info-icon">🏛️</i>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                    <polyline points="9 22 9 12 15 12 15 22"/>
+                                </svg>
                                 <span>@adminFaculty</span>
                             </div>
                         }
                         <div class="dropdown-divider"></div>
                         <a href="@Url.Action("Logout", "Auth", new { area = "" })" class="dropdown-item logout-item">
-                            <i class="info-icon">🚪</i>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16 17 21 12 16 7"/>
+                                <line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
                             <span>Đăng xuất</span>
                         </a>
                     </div>
@@ -108,41 +119,82 @@
                 <div class="nav-group-label">QUẢN TRỊ HỆ THỐNG</div>
                 <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "DanhMuc" ? "active" : "")"
                    href="@Url.Action("Index", "DanhMuc")">
-                    <i class="nav-icon">📁</i> Cập nhật danh mục
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>Cập nhật danh mục</span>
                 </a>
                 <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "NguoiDung" ? "active" : "")"
                    href="@Url.Action("Index", "NguoiDung")">
-                    <i class="nav-icon">👥</i> Quản lý người dùng
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span>Quản lý người dùng</span>
                 </a>
                 <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "TieuChi" ? "active" : "")"
                    href="@Url.Action("Index", "TieuChi")">
-                    <i class="nav-icon">⚙️</i> Thiết lập tiêu chí
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m18.2 5.2l-4.2-4.2m-6 0l-4.2 4.2"/>
+                    </svg>
+                    <span>Thiết lập tiêu chí</span>
                 </a>
 
                 <div class="nav-group-label">QUẢN LÝ TÀI LIỆU</div>
                 <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "DuyetTaiLieu" ? "active" : "")"
                    href="@Url.Action("Index", "DuyetTaiLieu")">
-                    <i class="nav-icon">📄</i> Duyệt tài liệu
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    <span>Duyệt tài liệu</span>
                 </a>
                 <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "BaoCao" ? "active" : "")"
                    href="@Url.Action("Index", "BaoCao")">
-                    <i class="nav-icon">⚠️</i> Báo cáo vi phạm
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>Báo cáo vi phạm</span>
                 </a>
 
                 <div class="nav-group-label">THỐNG KÊ & TỔNG QUAN</div>
                 <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")"
                    href="@Url.Action("Index", "Home")">
-                    <i class="nav-icon">📊</i> Xem thống kê
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                    <span>Xem thống kê</span>
                 </a>
                 <a class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Rank" ? "active" : "")" 
                    href="@Url.Action("Rank", "Home")">
-                    <i class="nav-icon">📈</i> Bảng xếp hạng
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 16v-3h5v7h-5v-4z"/>
+                        <path d="M9 9v11H4V9h5z"/>
+                        <path d="M22 6v14h-5V6h5z"/>
+                        <path d="M2 13v7h5v-7H2z"/>
+                    </svg>
+                    <span>Bảng xếp hạng</span>
                 </a>
 
                 <div class="nav-group-label">CÔNG CỤ HỆ THỐNG</div>
                 <a class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Backup" ? "active" : "")" 
                    href="@Url.Action("Backup", "Home")">
-                    <i class="nav-icon">☁️</i> Sao lưu dữ liệu
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    <span>Sao lưu dữ liệu</span>
                 </a>
             }
             else if (adminRole == "VT004" || adminRole == "VT002") // CÁN BỘ KHOA / GIẢNG VIÊN
@@ -150,22 +202,42 @@
                 <div class="nav-group-label">KIỂM DUYỆT</div>
                 <a class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "ReviewCBK" ? "active" : "")"
                    href="@Url.Action("ReviewCBK", "CanBoKhoa")">
-                    <i class="nav-icon">⚖️</i> Duyệt tài liệu khoa
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                    <span>Duyệt tài liệu khoa</span>
                 </a>
                 <a class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "ReviewedCBK" ? "active" : "")"
                    href="@Url.Action("ReviewedCBK", "CanBoKhoa")">
-                    <i class="nav-icon">📜</i> Lịch sử duyệt
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    <span>Lịch sử duyệt</span>
                 </a>
 
                 <div class="nav-group-label">HỖ TRỢ</div>
                 <a class="nav-item" href="#">
-                    <i class="nav-icon">❓</i> Trợ giúp
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>Trợ giúp</span>
                 </a>
             }
 
             <div class="nav-divider"></div>
             <a class="nav-item logout" href="@Url.Action("Logout", "Auth", new { area = "" })"> 
-                <i class="nav-icon">🚪</i> Đăng xuất
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span>Đăng xuất</span>
             </a>
         </nav>
 

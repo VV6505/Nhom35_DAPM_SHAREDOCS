@@ -350,13 +350,38 @@ body {
     padding: 12px 20px 6px;
 }
 
+.nav-group-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 16px 20px 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.nav-group-label:first-child {
+    padding-top: 12px;
+    margin-top: 0;
+}
+
+.nav-group-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+
 .nav-item {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
     cursor: pointer;
-    color: var(--text-sec);
+    color: #475569;
     font-size: 15px;
     font-weight: 500;
     transition: all 0.15s;
