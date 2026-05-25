@@ -284,15 +284,21 @@
                                 <span class="fw-bold small">@Model.LuotTai</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted small">Điểm yêu cầu:</span>
-                                <span class="fw-bold text-warning small">⭐ @Model.DiemYeuCau điểm</span>
+                                <span class="text-muted small">Phí tải xuống:</span>
+                                <span class="fw-bold text-danger small">
+                                    <i class="fa-solid fa-minus-circle me-1"></i> @Model.DiemYeuCau điểm
+                                </span>
+                            </div>
+                            <div class="alert alert-warning p-2 mt-2 mb-3" style="font-size: 11px; border-radius: 8px;">
+                                <i class="fa-solid fa-circle-info me-1"></i> 
+                                Sinh viên sẽ bị trừ <strong>@Model.DiemYeuCau điểm</strong> khi tải tài liệu này.
                             </div>
                             <div class="d-flex justify-content-between mb-4">
                                 <span class="text-muted small">Định dạng:</span>
                                 <span class="badge bg-secondary rounded-pill text-uppercase">@Model.LoaiFile</span>
                             </div>
 
-                            <a href="@Url.Action("Download", "Document", new { id = Model.MaTaiLieu })" class="btn btn-success w-100 py-3 rounded-pill fw-bold border-0 shadow-sm mb-3">
+                            <a href="javascript:void(0)" onclick="handleDownload('@Model.MaTaiLieu')" class="btn btn-success w-100 py-3 rounded-pill fw-bold border-0 shadow-sm mb-3">
                                 <i class="fa-solid fa-download me-2"></i>TẢI XUỐNG NGAY
                             </a>
 
@@ -395,6 +401,22 @@
                     } else {
                         if(s1) { s1.classList.remove('fa-solid', 'text-warning'); s1.classList.add('fa-regular'); t1.innerText = 'Lưu'; }
                         if(s2) { s2.classList.remove('fa-solid', 'text-danger'); s2.classList.add('fa-regular'); t2.innerText = 'Lưu vào yêu thích'; }
+                    }
+                } else {
+                    alert(res.message);
+                }
+            });
+        }
+
+        function handleDownload(maTL) {
+            $.get('/Document/CheckDownloadPoints', { id: maTL }, function (res) {
+                if (res.success) {
+                    if (res.confirmNeeded) {
+                        if (confirm(`Tải tài liệu này sẽ trừ ${res.points} điểm tích lũy của bạn. Bạn có chắc chắn muốn tải không?`)) {
+                            window.location.href = '/Document/Download/' + maTL;
+                        }
+                    } else {
+                        window.location.href = '/Document/Download/' + maTL;
                     }
                 } else {
                     alert(res.message);

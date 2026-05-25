@@ -118,6 +118,27 @@ namespace HeThong_Admin.Controllers
                 else if (adminRole == "VT001") 
                 {
                     tl.TrangThaiDuyet = "Đã duyệt";
+
+                    // CỘNG ĐIỂM THƯỞNG CHO NGƯỜI ĐĂNG (NẾU LÀ SINH VIÊN) - CHỈ KHI ADMIN PHÊ DUYỆT XONG
+                    var uploader = await _context.SinhViens.FindAsync(tl.MaNguoiDang);
+                    if (uploader != null)
+                    {
+                        // Lấy học kỳ hiện tại
+                        var currentHK = await _context.HocKies.OrderByDescending(h => h.MaHk).FirstOrDefaultAsync();
+
+                        // Thưởng điểm bằng đúng giá trị của tài liệu (Base + Rareness nếu có)
+                        int rewardPoints = tl.DiemYeuCau ?? 0;
+                        uploader.DiemTichLuy = (uploader.DiemTichLuy ?? 0) + rewardPoints;
+
+                        _context.LichSuDiems.Add(new LichSuDiem
+                        {
+                            MaSv = tl.MaNguoiDang,
+                            SoDiemThayDoi = rewardPoints,
+                            LyDo = $"Thưởng điểm đóng góp tài liệu được phê duyệt: {tl.TieuDe}",
+                            NgayThayDoi = DateTime.Now,
+                            MaHk = currentHK?.MaHk
+                        });
+                    }
                 }
                 // GỬI THÔNG BÁO CHO NGƯỜI ĐĂNG
                 var lastTB_AP = _context.ThongBaos.OrderByDescending(t => t.MaTb).FirstOrDefault();

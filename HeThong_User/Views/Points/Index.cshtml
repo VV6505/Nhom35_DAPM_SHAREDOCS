@@ -176,9 +176,14 @@
         z-index: 1;
     }
 
-    .points-timeline-dot {
+    .points-timeline-dot.positive {
         background: #4caf50;
         box-shadow: 0 0 0 2px #4caf50;
+    }
+
+    .points-timeline-dot.negative {
+        background: #f44336;
+        box-shadow: 0 0 0 2px #f44336;
     }
 
     .points-timeline-content {
@@ -213,9 +218,14 @@
         border-radius: 8px;
     }
 
-    .points-timeline-value {
+    .points-timeline-value.positive {
         color: #2e7d32;
         background: #e8f5e9;
+    }
+
+    .points-timeline-value.negative {
+        color: #c62828;
+        background: #ffebee;
     }
 
     .points-timeline-meta {
@@ -432,16 +442,17 @@
             <div class="points-timeline">
                 ${history.map(item => {
                     const diem = item.diemThayDoi || 0;
+                    const isPositive = diem > 0;
                     const date = item.ngayThayDoi ? new Date(item.ngayThayDoi).toLocaleDateString('vi-VN') : 'N/A';
                     
                     return `
                         <div class="points-timeline-item">
-                            <div class="points-timeline-dot"></div>
+                            <div class="points-timeline-dot ${isPositive ? 'positive' : 'negative'}"></div>
                             <div class="points-timeline-content">
                                 <div class="points-timeline-header">
                                     <div class="points-timeline-reason">${item.lyDo || 'Đăng tải tài liệu'}</div>
-                                    <div class="points-timeline-value">
-                                        +${diem}
+                                    <div class="points-timeline-value ${isPositive ? 'positive' : 'negative'}">
+                                        ${isPositive ? '+' : ''}${diem}
                                     </div>
                                 </div>
                                 <div class="points-timeline-meta">

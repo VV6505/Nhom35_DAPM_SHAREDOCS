@@ -18,6 +18,10 @@
 
             @foreach (var item in Model)
             {
+                var loaiND = Context.Session.GetString("LoaiNguoiDung");
+                var currentMaND = loaiND == "SinhVien" ? Context.Session.GetString("MaSinhVien") : Context.Session.GetString("MaGiangVien");
+                bool isSaved = !string.IsNullOrEmpty(currentMaND) && item.TlyeuThiches.Any(t => t.MaNd == currentMaND);
+
                 <div class="post mb-4 shadow-sm" data-id="@item.MaTaiLieu" style="background: #fff; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden;">
                     <div class="post-header d-flex justify-content-between align-items-start p-3">
                         <div class="post-header-info d-flex align-items-center">
@@ -32,9 +36,12 @@
                             </div>
                         </div>
                         <div class="post-header-actions d-flex gap-2">
-                            <button class="btn btn-light btn-sm text-secondary"><i class="fa-regular fa-star"></i> Lưu</button>
-                            <a href="@Url.Action("Download", "Document", new { id = item.MaTaiLieu })" class="btn btn-light btn-sm text-primary">
-                                <i class="fa-solid fa-download"></i> Tải xuống
+                            <button class="btn btn-light btn-sm text-secondary btn-save" data-id="@item.MaTaiLieu">
+                                <i class="@(isSaved ? "fa-solid fa-star text-warning" : "fa-regular fa-star") icon-save"></i> 
+                                <span class="text-save">@(isSaved ? "Đã lưu" : "Lưu")</span>
+                            </button>
+                            <a href="javascript:void(0)" onclick="handleDownload('@item.MaTaiLieu')" class="btn btn-light btn-sm text-primary">
+                                <i class="fa-solid fa-download"></i> Tải xuống @((item.DiemYeuCau ?? 0) > 0 ? $"({item.DiemYeuCau}đ)" : "")
                             </a>
                         </div>
                     </div>
@@ -59,6 +66,10 @@
                             <div class="post-attach-name fw-bold" style="font-size: 14px;">@item.TieuDe</div>
                             <div class="post-attach-detail text-muted" style="font-size: 12px;">
                                 @item.LoaiFile • @(item.KichThuoc)MB • Môn: @(item.MaMonHocNavigation?.TenMonHoc ?? "N/A") • @item.LuotTai lượt tải
+                                @if ((item.DiemYeuCau ?? 0) > 0)
+                                {
+                                    <span class="ms-2 text-danger fw-bold"><i class="fa-solid fa-minus-circle"></i> @item.DiemYeuCau điểm</span>
+                                }
                             </div>
                         </div>
                     </div>
@@ -164,6 +175,45 @@
                     }
                 });
             });
+
+            // Xử lý Lưu tài liệu
+            $('.btn-save').click(function (e) {
+                e.preventDefault();
+                var btn = $(this);
+                var maTL = btn.data('id');
+                var icon = btn.find('.icon-save');
+                var text = btn.find('.text-save');
+
+                $.post('/Document/ToggleSave', { maTL: maTL }, function (res) {
+                    if (res.success) {
+                        if (res.saved) {
+                            icon.removeClass('fa-regular').addClass('fa-solid text-warning');
+                            text.text('Đã lưu');
+                        } else {
+                            icon.removeClass('fa-solid text-warning').addClass('fa-regular');
+                            text.text('Lưu');
+                        }
+                    } else {
+                        alert(res.message || "Vui lòng đăng nhập để lưu tài liệu!");
+                    }
+                });
+            });
         });
+
+        function handleDownload(maTL) {
+            $.get('/Document/CheckDownloadPoints', { id: maTL }, function (res) {
+                if (res.success) {
+                    if (res.confirmNeeded) {
+                        if (confirm(`Tải tài liệu này sẽ trừ ${res.points} điểm tích lũy của bạn. Bạn có chắc chắn muốn tải không?`)) {
+                            window.location.href = '/Document/Download/' + maTL;
+                        }
+                    } else {
+                        window.location.href = '/Document/Download/' + maTL;
+                    }
+                } else {
+                    alert(res.message);
+                }
+            });
+        }
     </script>
 }

@@ -9,6 +9,45 @@
     var previewLinks = ViewBag.PreviewLinks as Dictionary<string, string> ?? new Dictionary<string, string>();
 }
 
+<style>
+    .action-container {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+    }
+    .action-item {
+        flex: 0 0 95px; /* Cố định chiều rộng cho mỗi item là 95px */
+        display: flex;
+        justify-content: center;
+    }
+    .action-item form {
+        margin: 0;
+        width: 100%;
+        display: flex;
+    }
+    .btn-action-custom {
+        width: 100%;
+        height: 38px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        padding: 0 10px;
+        border: none;
+        transition: all 0.2s;
+    }
+    /* Cố định cột thao tác */
+    table th:last-child, table td:last-child {
+        width: 320px;
+        min-width: 320px;
+        text-align: center;
+    }
+</style>
+
 <div class="content">
     <h1 class="page-title">Duyệt tài liệu</h1>
     <p class="page-subtitle">Kiểm duyệt nội dung tài liệu trước khi hiển thị công khai</p>
@@ -86,7 +125,7 @@
                             <td>@(tl.NgayDang?.ToString("dd/MM/yyyy") ?? "—")</td>
                             <td><span class="badge @badgeClass">@badgeText</span></td>
                             <td>
-                                <div class="btn-group">
+                                <div class="action-container">
                                     @{
                                         string previewUrl = previewLinks.ContainsKey(tl.MaTaiLieu) ? previewLinks[tl.MaTaiLieu] : "";
                                         string ext = (tl.LoaiFile ?? "").ToLower().Replace(".", "").Trim();
@@ -95,26 +134,41 @@
                                             previewUrl = "https://view.officeapps.live.com/op/embed.aspx?src=" + System.Net.WebUtility.UrlEncode(previewUrl) + "&wdStartOn=1&wdPrint=0&wdEmbedCode=0";
                                         }
                                     }
-                                    @if (!string.IsNullOrEmpty(previewUrl))
-                                    {
-                                        <button class="btn btn-info text-white" onclick="showPreview('@previewUrl')">Xem trước</button>
-                                    }
+                                    
+                                    <div class="action-item">
+                                        @if (!string.IsNullOrEmpty(previewUrl))
+                                        {
+                                            <button class="btn btn-info text-white btn-action-custom" onclick="showPreview('@previewUrl')">Xem trước</button>
+                                        }
+                                    </div>
 
                                     @if (tl.TrangThaiDuyet == "Chờ duyệt" || tl.TrangThaiDuyet == "Chờ Admin duyệt")
                                     {
-                                        <form method="post" asp-action="Duyet" asp-route-id="@tl.MaTaiLieu" style="display:inline;">
-                                            <button type="submit" class="btn btn-success">Duyệt</button>
-                                        </form>
-                                        <form method="post" asp-action="TuChoi" asp-route-id="@tl.MaTaiLieu" style="display:inline;">
-                                            <button type="submit" class="btn btn-danger">Từ chối</button>
-                                        </form>
+                                        <div class="action-item">
+                                            <form method="post" asp-action="Duyet" asp-route-id="@tl.MaTaiLieu">
+                                                <button type="submit" class="btn btn-success btn-action-custom">Duyệt</button>
+                                            </form>
+                                        </div>
+                                        <div class="action-item">
+                                            <form method="post" asp-action="TuChoi" asp-route-id="@tl.MaTaiLieu">
+                                                <button type="submit" class="btn btn-danger btn-action-custom">Từ chối</button>
+                                            </form>
+                                        </div>
                                     }
                                     else if (tl.TrangThaiDuyet == "Đã duyệt")
                                     {
-                                        <form method="post" asp-action="Xoa" asp-route-id="@tl.MaTaiLieu" style="display:inline;"
-                                              onsubmit="return confirm('Xóa tài liệu này?');">
-                                            <button type="submit" class="btn btn-danger">Xóa</button>
-                                        </form>
+                                        <div class="action-item">
+                                            <form method="post" asp-action="Xoa" asp-route-id="@tl.MaTaiLieu"
+                                                  onsubmit="return confirm('Xóa tài liệu này?');">
+                                                <button type="submit" class="btn btn-danger btn-action-custom">Xóa</button>
+                                            </form>
+                                        </div>
+                                        <div class="action-item"></div> @* Empty space for balance *@
+                                    }
+                                    else
+                                    {
+                                        <div class="action-item"></div>
+                                        <div class="action-item"></div>
                                     }
                                 </div>
                             </td>

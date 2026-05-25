@@ -629,22 +629,15 @@ namespace HeThong_User.Controllers
                 taiLieu.LuotTai        = 0;
                 taiLieu.LanTaiBan      = taiLieu.LanTaiBan ?? 1;
                 
-                // Cập nhật điểm dựa trên phân cấp Độ Quý
+                // Cập nhật điểm dựa trên phân cấp Độ Quý (Yêu cầu mới: > Bình thường [>= 6.0] thì mới cộng thêm)
                 double rarenessScore = evaluation.Evaluation.Final_Rareness_Score;
-                double bonusPoints = 0;
-
-                if (rarenessScore >= 8.5) {
-                    // Rất Quý: Cộng 150% điểm độ quý để khuyến khích tài liệu chất lượng cao
-                    bonusPoints = rarenessScore * 1.5;
-                } else if (rarenessScore >= 6.0) {
-                    // Quý / Hiếm: Cộng 100% điểm độ quý
-                    bonusPoints = rarenessScore;
+                bool isAboveNormal = rarenessScore >= 6.0;
+                
+                if (isAboveNormal) {
+                    taiLieu.DiemYeuCau = (int)Math.Round(diemYc + rarenessScore);
                 } else {
-                    // Thông thường: Không cộng thêm (giữ nguyên điểm gốc như yêu cầu)
-                    bonusPoints = 0;
+                    taiLieu.DiemYeuCau = diemYc;
                 }
-
-                taiLieu.DiemYeuCau = (int)Math.Round(diemYc + bonusPoints);
 
                 var lastItem = _context.TaiLieus.OrderByDescending(t => t.MaTaiLieu).FirstOrDefault();
                 taiLieu.MaTaiLieu = lastItem != null
@@ -675,6 +668,41 @@ namespace HeThong_User.Controllers
             ViewBag.MaLoaiTl = _context.LoaiTaiLieus.ToList();
             ViewBag.Khoas    = _context.Khoas.ToList();
             return View(taiLieu);
+        }
+
+        // [GET] Kiểm tra điểm trước khi tải
+        [HttpGet]
+        public async Task<IActionResult> CheckDownloadPoints(string id)
+        {
+            var maSV = HttpContext.Session.GetString("MaSinhVien");
+            if (string.IsNullOrEmpty(maSV)) return Json(new { success = false, message = "Vui lòng đăng nhập!" });
+
+            var taiLieu = await _context.TaiLieus.FindAsync(id);
+            if (taiLieu == null) return Json(new { success = false, message = "Tài liệu không tồn tại!" });
+
+            var loaiND = HttpContext.Session.GetString("LoaiNguoiDung");
+            bool isOwner = taiLieu.MaNguoiDang == maSV;
+            bool isStudent = loaiND == "SinhVien";
+
+            if (isStudent && !isOwner && (taiLieu.DiemYeuCau ?? 0) > 0)
+            {
+                var sinhVien = await _context.SinhViens.FindAsync(maSV);
+                if (sinhVien == null) return Json(new { success = false, message = "Không tìm thấy thông tin sinh viên!" });
+
+                if ((sinhVien.DiemTichLuy ?? 0) < (taiLieu.DiemYeuCau ?? 0))
+                {
+                    return Json(new { 
+                        success = false, 
+                        needsPoints = true,
+                        required = taiLieu.DiemYeuCau,
+                        current = sinhVien.DiemTichLuy,
+                        message = $"Bạn không đủ điểm! Cần {taiLieu.DiemYeuCau} điểm (Hiện có {sinhVien.DiemTichLuy})." 
+                    });
+                }
+                return Json(new { success = true, confirmNeeded = true, points = taiLieu.DiemYeuCau });
+            }
+
+            return Json(new { success = true, confirmNeeded = false });
         }
 
         // [GET] Tải tài liệu
@@ -713,12 +741,17 @@ namespace HeThong_User.Controllers
 
                 // Trừ điểm
                 sinhVien.DiemTichLuy -= taiLieu.DiemYeuCau;
+                
+                // Lấy học kỳ hiện tại
+                var currentHK = await _context.HocKies.OrderByDescending(h => h.MaHk).FirstOrDefaultAsync();
+
                 _context.LichSuDiems.Add(new LichSuDiem
                 {
                     MaSv = maSV,
                     SoDiemThayDoi = -(taiLieu.DiemYeuCau ?? 0),
                     LyDo = $"Tải tài liệu độ quý cao: {taiLieu.TieuDe}",
-                    NgayThayDoi = DateTime.Now
+                    NgayThayDoi = DateTime.Now,
+                    MaHk = currentHK?.MaHk
                 });
                 
                 // Cập nhật session điểm hiển thị
