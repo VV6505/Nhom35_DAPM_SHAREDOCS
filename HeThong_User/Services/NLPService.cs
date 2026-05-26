@@ -57,50 +57,65 @@ namespace HeThong_User.Services
             }
         }
 
-        public async Task<RarenessEvaluation> EvaluateRarenessAsync(string tieuDe, string loaiFile, string loaiTaiLieu, string nxb, int? namXb, int diemYeuCau, string rawText)
+        public async Task<RarenessEvaluation> EvaluateRarenessAsync(string tieuDe, string loaiFile, string loaiTaiLieu, string nxb, int? namXb, int diemYeuCau, string rawText, List<ExistingDocInfo> existingDocs)
         {
             var apiKey = _configuration["Gemini:ApiKey"];
             if (string.IsNullOrEmpty(apiKey))
             {
-                // Fallback to local heuristic if no API key is provided
-                return CalculateLocalHeuristic(tieuDe, loaiTaiLieu, nxb, namXb, diemYeuCau, rawText);
+                var fallback = CalculateLocalHeuristic(tieuDe, loaiTaiLieu, nxb, namXb, diemYeuCau, rawText);
+                return fallback;
             }
+
+            var existingDocsJson = JsonSerializer.Serialize(existingDocs ?? new List<ExistingDocInfo>());
 
             var prompt = $@"
 [ROLE & CONTEXT]
-Bạn là một công cụ AI chuyên trách (NLP Engine) tích hợp tại phân hệ Backend Admin của dự án ""Hệ thống chia sẻ tài liệu học tập trường Đại học Sư phạm Kỹ thuật Đà Nẵng"". Nhiệm vụ của bạn là tiếp nhận siêu dữ liệu từ Form nhập liệu và đoạn văn bản thô (Raw Text) trích xuất từ file tài liệu, sau đó tính toán Điểm Độ Quý (Rareness Score) theo thuật toán Heuristic trọng số.
-[INPUT METADATA FROM INTERFACE]
-- Tiêu đề tài liệu: {tieuDe}
+Bạn là một công cụ AI chuyên trách (NLP Engine) tích hợp tại phân hệ Backend Admin của dự án ""Hệ thống chia sẻ tài liệu học tập trường Đại học Sư phạm Kỹ thuật Đà Nẵng"". Nhiệm vụ của bạn là kiểm tra trùng lặp (đạo văn), kiểm tra tính toàn vẹn dữ liệu chống gian lận, và tính toán Điểm Độ Quý (Rareness Score - RS) theo thuật toán Heuristic trọng số trước khi ghi nhận vào Database.
+[INPUT DATA FROM INTERFACE]
+- Tiêu đề tài liệu mới: {tieuDe}
 - Định dạng tệp: {loaiFile}
 - Loại tài liệu: {loaiTaiLieu}
-- Nhà xuất bản: {nxb}
-- Năm xuất bản: {namXb}
-- Điểm yêu cầu: {diemYeuCau}
+- Nhà xuất bản / Đơn vị tác quyền: {nxb}
+- Năm xuất bản (do người dùng nhập): {namXb}
+- Điểm yêu cầu tích lũy: {diemYeuCau}
+[CHỐT CHẶN 1: PLAGIARISM & SIMILARITY CHECK (KIỂM TRA ĐẠO VĂN)]
+Hãy tiến hành so sánh nội dung tại mục [RAW TEXT INPUT FOR NLP PROCESSING] với danh sách các văn bản cũ tại mục [EXISTING DATABASE TEXTS] để tính toán tỷ lệ tương đồng (Similarity Percentage):
+1. Ngưỡng Chặn Cứng (Tỷ lệ >= 50%): Xác định là sao chép thô bạo hoặc đổi tên file. Bạn phải LẬP TỨC dừng luồng tính điểm, gán Final_Rareness_Score = 0.0, gán nhãn Classification = ""BỊ CHẶN - ĐẠO VĂN >=50%"".
+2. Ngưỡng Chờ Duyệt (Tỷ lệ từ 25% đến dưới 50%): Tài liệu có dấu hiệu sao chép một phần. Vẫn tiến hành tính điểm Heuristic như bình thường nhưng bắt buộc phải đánh dấu trạng thái nghi vấn vào chuỗi ""Security_Note"".
+[CHỐT CHẶN 2: ANTI-FRAUD & DATA VERIFICATION RULES]
+(Chỉ thực hiện nếu tỷ lệ trùng < 50%)
+1. Kiểm tra chéo năm xuất bản (Cross-Verification): Quét nội dung văn bản thô của file mới để tìm mốc thời gian thực tế (Ví dụ: Trang bìa ghi ""năm 2026""). Nếu phát hiện người dùng nhập năm trên Form ({namXb}) là năm cũ (1980, 1990) nhằm thao túng điểm khoảng cách năm nhưng ruột file là năm mới (2026), bạn phải lấy năm thực tế trong file (2026) để tính toán và hạ điểm tiêu chí năm về mức sàn 2.0.
+2. Xử lý dữ liệu sai/rác/khuyết thiếu: Nếu trường dữ liệu bị rỗng (Null), chứa ký tự rác vô nghĩa (""asdfgh"", ""12345""), hoặc số điểm yêu cầu bị nhập số âm, hãy tự động ép các giá trị này về mức điểm sàn an toàn (Mặc định = 2.0 điểm).
 [RULES FOR HEURISTIC SCORING (SCORING MATRIX)]
+(Chỉ áp dụng nếu tài liệu vượt qua vòng kiểm tra trùng lặp < 50%. Thang điểm từ 1.0 đến 10.0):
 1. Yếu tố 1: Tính chất nội dung và Thể loại (Trọng số: 0.35)
-   - Nếu Loại tài liệu là ""Giáo trình"", ""Bài giảng độc quyền"", hoặc văn bản chứa từ khóa học thuật trọng tâm như ""Đồ án phần mềm"", ""Đồ án tốt nghiệp"", ""Luận văn"", ""Usecase"", ""Database"": 10 điểm.
+   - Nếu Loại tài liệu là ""Giáo trình"", ""Đồ án tốt nghiệp"", ""Luận văn"" hoặc ruột file chứa từ khóa học thuật trọng tâm như ""Đồ án phần mềm"", ""Báo cáo kết quả"", ""Usecase"", ""Database"": 10 điểm.
    - Nếu Loại tài liệu là ""Slide bài giảng"", ""Đề cương chi tiết"", ""Tài liệu hướng dẫn thực hành"": 6 điểm.
-   - Nếu là tài liệu tham khảo ngắn, tiểu luận, bài tập nộp tuần thông thường: 3 điểm.
+   - Nếu là tài liệu tham khảo ngắn, tiểu luận, bài tập nộp tuần thông thường hoặc tiêu đề chứa ký tự rác: 3 điểm.
 2. Yếu tố 2: Đơn vị cấp phép và Tác quyền (Trọng số: 0.20)
-   - Nếu Nhà xuất bản thuộc các đơn vị chính thống (ví dụ: ""NXB Giáo dục"", ""NXB Đại học Quốc gia"", ""NXB Khoa học Kỹ thuật""): 10 điểm.
-   - Nếu Nhà xuất bản ghi nhận ""Giảng viên biên soạn"" hoặc ""Nội bộ trường ĐH SPKT"": 7 điểm.
-   - Nếu ghi nhận ""Tác giả tự do"" hoặc bỏ trống thông tin: 3 điểm.
+   - Nếu Nhà xuất bản thuộc các đơn vị chính thống (""NXB Giáo dục"", ""NXB Đại học Quốc gia"", ""NXB Khoa học Kỹ thuật""): 10 điểm.
+   - Nếu ghi nhận ""Giảng viên biên soạn"" hoặc ""Nội bộ trường ĐH SPKT"": 7 điểm.
+   - Nếu ghi nhận ""Tác giả tự do"", thông tin chứa ký tự rác hoặc bị bỏ trống: 3 điểm.
 3. Yếu tố 3: Khoảng cách năm phát hành (Trọng số: 0.20)
-   - Lấy năm hiện tại của hệ thống mặc định là năm 2026 trừ đi giá trị tại trường [Năm xuất bản].
-   - Nếu khoảng cách thời gian trên 20 năm (Tài liệu cổ, mang tính lưu trữ lịch sử): 10 điểm.
+   - Lấy năm hiện tại hệ thống mặc định là năm 2026 trừ đi [Năm xuất bản] (Năm đã qua kiểm tra chéo).
+   - Nếu khoảng cách thời gian trên 20 năm: 10 điểm.
    - Nếu khoảng cách thời gian từ 5 đến 20 năm: 6 điểm.
-   - Nếu khoảng cách dưới 5 năm hoặc trùng năm hiện tại (2026): 3 điểm.
+   - Nếu khoảng cách dưới 5 năm, trùng năm hiện tại (2026), hoặc phát hiện gian lận năm: 2.0 điểm.
 4. Yếu tố 4: Giá trị trao đổi hệ thống - Điểm yêu cầu (Trọng số: 0.25)
-   - Đọc giá trị từ trường [Điểm yêu cầu] do người dùng thiết lập trên giao diện:
    - Nếu Điểm yêu cầu >= 50 điểm: 10 điểm.
    - Nếu Điểm yêu cầu từ 20 đến dưới 50 điểm: 7 điểm.
    - Nếu Điểm yêu cầu từ 5 đến dưới 20 điểm: 5 điểm.
-   - Nếu Điểm yêu cầu = 0 (Tài liệu miễn phí): 2 điểm.
+   - Nếu Điểm yêu cầu = 0 (Tài liệu miễn phí) hoặc bị nhập số âm: 2 điểm.
+[MATHEMATICAL FORMULA]
+Final_Rareness_Score = (Điểm_Yếu_Tố_1 * 0.35) + (Điểm_Yếu_Tố_2 * 0.20) + (Điểm_Yếu_Tố_3 * 0.20) + (Điểm_Yếu_Tố_4 * 0.25)
 [STRICT OUTPUT FORMAT CONSTRAINTS]
-- CHỈ trả về duy nhất một chuỗi định dạng JSON hợp lệ.
-- KHÔNG bao gồm các ký tự bọc khối dạng ```json ... ```.
-- KHÔNG kèm theo lời chào, lời giải thích hoặc bất kỳ chữ thừa nào ngoài khối JSON.
+- CHỈ trả về duy nhất một chuỗi định dạng JSON hợp lệ, không bọc khối dạng ```json ... ```, không kèm chữ thừa.
 {{
+  ""Similarity_Check"": {{
+    ""Is_Plagiarized"": false,
+    ""Similarity_Percentage"": 0.0,
+    ""Matched_With_Document"": ""Tiêu đề file cũ bị trùng (ghi 'None' nếu < 25%)""
+  }},
   ""Evaluation"": {{
     ""S1_ContentType_Score"": 0.0,
     ""S2_Authority_Score"": 0.0,
@@ -108,15 +123,12 @@ Bạn là một công cụ AI chuyên trách (NLP Engine) tích hợp tại phâ
     ""S4_PointsRequired_Score"": 0.0,
     ""Final_Rareness_Score"": 0.0
   }},
-  ""Classification"": ""Gán nhãn chuỗi"",
-  ""Reasoning"": {{
-    ""S1_Reason"": ""Giải thích lý do cho S1 (vd: Tại vì tài liệu chứa từ khóa chuyên sâu như... nên được 10 điểm)"",
-    ""S2_Reason"": ""Giải thích lý do cho S2"",
-    ""S3_Reason"": ""Giải thích lý do cho S3"",
-    ""S4_Reason"": ""Giải thích lý do cho S4""
-  }}
+  ""Classification"": ""Chuỗi nhãn"",
+  ""Security_Note"": ""Ghi cụ thể lỗi ví dụ: 'Normal' hoặc 'Phát hiện đạo văn mức độ nhẹ: trùng X% với tài liệu Y' hoặc 'Phát hiện khai gian năm xuất bản'""
 }}
-[RAW TEXT INPUT]
+[EXISTING DATABASE TEXTS]
+{existingDocsJson}
+[RAW TEXT INPUT FOR NLP PROCESSING]
 {rawText}
 ";
 
@@ -136,51 +148,73 @@ Bạn là một công cụ AI chuyên trách (NLP Engine) tích hợp tại phâ
                     return JsonSerializer.Deserialize<RarenessEvaluation>(contentText);
                 }
             }
-            catch (Exception)
-            {
-                // Fallback to local
-            }
+            catch (Exception) { }
 
             return CalculateLocalHeuristic(tieuDe, loaiTaiLieu, nxb, namXb, diemYeuCau, rawText);
         }
 
         private RarenessEvaluation CalculateLocalHeuristic(string tieuDe, string loaiTaiLieu, string nxb, int? namXb, int diemYeuCau, string rawText)
         {
+            string securityNote = "Normal";
+            
+            // Check for junk data
+            if (string.IsNullOrWhiteSpace(tieuDe) || tieuDe.Length < 3 || Regex.IsMatch(tieuDe, @"^[a-zA-Z0-9]{10,}$"))
+            {
+                securityNote = "Phát hiện tiêu đề có dấu hiệu dữ liệu rác.";
+            }
+
             double s1 = 3.0;
-            string r1 = "Vì tài liệu chưa có nhiều từ khóa chuyên sâu nên đạt mức điểm cơ bản.";
-            var keywords = new[] { "Đồ án", "Luận văn", "Usecase", "Database", "Giáo trình", "Bài giảng độc quyền" };
-            if (loaiTaiLieu.Contains("Giáo trình") || keywords.Any(k => (tieuDe + rawText).Contains(k, StringComparison.OrdinalIgnoreCase)))
+            var keywords = new[] { "Đồ án phần mềm", "Báo cáo kết quả", "Usecase", "Database", "Giáo trình", "Đồ án tốt nghiệp", "Luận văn" };
+            if (loaiTaiLieu.Contains("Giáo trình") || loaiTaiLieu.Contains("Đồ án tốt nghiệp") || loaiTaiLieu.Contains("Luận văn") || keywords.Any(k => (tieuDe + rawText).Contains(k, StringComparison.OrdinalIgnoreCase)))
             {
                 s1 = 10.0;
-                r1 = "Vì tài liệu thuộc loại Giáo trình hoặc chứa nội dung chuyên môn cao (Đồ án, Luận văn) nên được hệ thống đánh giá điểm tối đa.";
             }
             else if (loaiTaiLieu.Contains("Slide") || loaiTaiLieu.Contains("Đề cương") || loaiTaiLieu.Contains("Thực hành"))
             {
                 s1 = 6.0;
-                r1 = "Vì tài liệu là Slide bài giảng hoặc Đề cương hướng dẫn nên được mức điểm khá.";
             }
 
             double s2 = 3.0;
-            string r2 = "Vì thông tin tác giả chưa rõ ràng nên đạt mức điểm tham khảo.";
-            if (string.IsNullOrEmpty(nxb)) { s2 = 2.0; r2 = "Vì thiếu thông tin Nhà xuất bản nên hệ thống chỉ áp dụng mức điểm sàn."; }
-            else if (nxb.Contains("NXB") || nxb.Contains("Đại học Quốc gia")) { s2 = 10.0; r2 = "Vì tài liệu được xuất bản bởi các đơn vị chính thống uy tín nên được điểm tối đa về tác quyền."; }
-            else if (nxb.Contains("Giảng viên") || nxb.Contains("SPKT")) { s2 = 7.0; r2 = "Vì tài liệu do Giảng viên biên soạn hoặc lưu hành nội bộ nên có độ tin cậy cao."; }
+            if (string.IsNullOrEmpty(nxb) || Regex.IsMatch(nxb, @"^[a-zA-Z0-9]{10,}$")) { s2 = 3.0; }
+            else if (nxb.Contains("NXB Giáo dục") || nxb.Contains("NXB Đại học Quốc gia") || nxb.Contains("NXB Khoa học Kỹ thuật")) { s2 = 10.0; }
+            else if (nxb.Contains("Giảng viên biên soạn") || nxb.Contains("SPKT")) { s2 = 7.0; }
 
-            double s3 = 3.0;
-            string r3 = "Vì tài liệu mới phát hành gần đây nên giá trị lưu trữ lịch sử ở mức trung bình.";
-            if (!namXb.HasValue) { s3 = 2.0; r3 = "Vì không rõ năm phát hành nên hệ thống áp dụng mức điểm thấp nhất cho yếu tố thời gian."; }
+            // Year Fraud Detection
+            int actualNamXb = namXb ?? 2026;
+            var yearMatches = Regex.Matches(rawText, @"\b(19|20)\d{2}\b");
+            int maxFoundYear = 0;
+            foreach (Match match in yearMatches)
+            {
+                if (int.TryParse(match.Value, out int year))
+                {
+                    if (year > maxFoundYear && year <= 2026) maxFoundYear = year;
+                }
+            }
+
+            bool isFraud = false;
+            if (namXb.HasValue && namXb.Value < 2000 && maxFoundYear >= 2020)
+            {
+                actualNamXb = maxFoundYear;
+                isFraud = true;
+                securityNote = $"Phát hiện hành vi gian lận năm xuất bản. Năm nhập: {namXb}, Năm thực tế ước tính: {maxFoundYear}";
+            }
+
+            double s3 = 2.0;
+            if (isFraud) { s3 = 2.0; }
             else
             {
-                int diff = 2026 - namXb.Value;
-                if (diff > 20) { s3 = 10.0; r3 = $"Vì tài liệu đã phát hành cách đây {diff} năm (trên 20 năm) nên mang giá trị lưu trữ lịch sử rất cao."; }
-                else if (diff >= 5) { s3 = 6.0; r3 = $"Vì tài liệu có tuổi đời {diff} năm nên có giá trị tham khảo tốt qua nhiều thời kỳ."; }
+                int diff = 2026 - actualNamXb;
+                if (diff > 20) { s3 = 10.0; }
+                else if (diff >= 5) { s3 = 6.0; }
+                else { s3 = 2.0; }
             }
 
             double s4 = 2.0;
-            string r4 = "Vì tài liệu được chia sẻ miễn phí nên điểm giá trị hệ thống ở mức cơ bản.";
-            if (diemYeuCau >= 50) { s4 = 10.0; r4 = "Vì mức điểm yêu cầu tải rất cao (trên 50 điểm) nên hệ thống đánh giá đây là tài liệu cực kỳ giá trị."; }
-            else if (diemYeuCau >= 20) { s4 = 7.0; r4 = "Vì mức điểm yêu cầu tải ở mức cao (20-50 điểm) nên đạt điểm cộng giá trị."; }
-            else if (diemYeuCau >= 5) { s4 = 5.0; r4 = "Vì tài liệu có yêu cầu điểm tích lũy khi tải nên có giá trị trao đổi khá."; }
+            int effectiveDiem = diemYeuCau < 0 ? 0 : diemYeuCau;
+            if (effectiveDiem >= 50) { s4 = 10.0; }
+            else if (effectiveDiem >= 20) { s4 = 7.0; }
+            else if (effectiveDiem >= 5) { s4 = 5.0; }
+            else if (effectiveDiem == 0) { s4 = 2.0; }
 
             double final = (s1 * 0.35) + (s2 * 0.20) + (s3 * 0.20) + (s4 * 0.25);
 
@@ -190,6 +224,7 @@ Bạn là một công cụ AI chuyên trách (NLP Engine) tích hợp tại phâ
 
             return new RarenessEvaluation
             {
+                Similarity_Check = new SimilarityCheckResult { Is_Plagiarized = false, Similarity_Percentage = 0, Matched_With_Document = "None" },
                 Evaluation = new EvaluationScores
                 {
                     S1_ContentType_Score = s1,
@@ -199,22 +234,33 @@ Bạn là một công cụ AI chuyên trách (NLP Engine) tích hợp tại phâ
                     Final_Rareness_Score = final
                 },
                 Classification = classification,
-                Reasoning = new EvaluationReasoning
-                {
-                    S1_Reason = r1,
-                    S2_Reason = r2,
-                    S3_Reason = r3,
-                    S4_Reason = r4
-                }
+                Security_Note = securityNote
             };
         }
     }
 
+    public class ExistingDocInfo
+    {
+        public string MaTaiLieu { get; set; }
+        public string TieuDe { get; set; }
+        public string ContentFingerprint { get; set; }
+    }
+
     public class RarenessEvaluation
     {
+        public SimilarityCheckResult Similarity_Check { get; set; }
         public EvaluationScores Evaluation { get; set; }
         public string Classification { get; set; }
+        public string Security_Note { get; set; }
+        public string ContentFingerprint { get; set; } // Keep for potential future use or internal tracking
         public EvaluationReasoning Reasoning { get; set; }
+    }
+
+    public class SimilarityCheckResult
+    {
+        public bool Is_Plagiarized { get; set; }
+        public double Similarity_Percentage { get; set; }
+        public string Matched_With_Document { get; set; }
     }
 
     public class EvaluationScores

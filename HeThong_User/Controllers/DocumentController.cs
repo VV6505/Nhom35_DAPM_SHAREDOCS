@@ -1,4 +1,5 @@
 using HeThong_User.Models;
+using HeThong_User.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
@@ -6,6 +7,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 
@@ -16,11 +18,11 @@ namespace HeThong_User.Controllers
         private readonly HeThongChiaSeTaiLieu_V1 _context;
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<DocumentController> _logger;
-        private readonly HeThong_User.Services.AzureBlobService _azureBlobService;
-        private readonly HeThong_User.Services.NLPService _nlpService;
+        private readonly AzureBlobService _azureBlobService;
+        private readonly NLPService _nlpService;
 
         public DocumentController(HeThongChiaSeTaiLieu_V1 context, IWebHostEnvironment env, ILogger<DocumentController> logger, 
-            HeThong_User.Services.AzureBlobService azureBlobService, HeThong_User.Services.NLPService nlpService)
+            AzureBlobService azureBlobService, NLPService nlpService)
         {
             _context = context;
             _env = env;
@@ -585,23 +587,75 @@ namespace HeThong_User.Controllers
                     : HttpContext.Session.GetString("MaGiangVien");
                 string ext = Path.GetExtension(fileUpload.FileName);
                 string standardFileName = GenerateStandardFileName(taiLieu.MaMonHoc, taiLieu.MaLoaiTl, taiLieu.TieuDe, maNDPre, ext);
-                
-                await _azureBlobService.UploadFileAsync(fileUpload.OpenReadStream(), standardFileName);
 
-                // ============================================================
-                // NLP EVALUATION (Rareness Score)
-                // ============================================================
+                // --- Đọc file vào MemoryStream MỘT LẦN DUY NHẤT để dùng cho nhiều mục đích ---
+                using var memoryStream = new MemoryStream();
+                await fileUpload.CopyToAsync(memoryStream);
+                var fileBytes = memoryStream.ToArray();
+
+                // 1. Tính toán Hash của file để kiểm tra trùng lặp TUYỆT ĐỐI (Toàn hệ thống)
+                string fileHash = "";
+                using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                {
+                    var hashBytes = sha256.ComputeHash(fileBytes);
+                    fileHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+                }
+
+                // Kiểm tra xem Hash này đã tồn tại trong MoTa của bất kỳ tài liệu nào chưa (Toàn hệ thống)
+                if (!string.IsNullOrEmpty(fileHash))
+                {
+                    var exactDuplicate = await _context.TaiLieus
+                        .Where(t => t.MoTa != null && t.MoTa.Contains(fileHash))
+                        .FirstOrDefaultAsync();
+
+                    if (exactDuplicate != null)
+                    {
+                        TempData["ErrorMessage"] = $"TÀI LIỆU BỊ CHẶN: File này đã tồn tại trên hệ thống. Vui lòng không upload lại cùng một nội dung file vật lý (Dù khác tên hay khác môn).";
+                        ViewBag.MaLoaiTl = _context.LoaiTaiLieus.ToList();
+                        ViewBag.Khoas    = _context.Khoas.ToList();
+                        return View(taiLieu);
+                    }
+                }
+
+                // 2. Upload lên Cloud
+                memoryStream.Position = 0;
+                await _azureBlobService.UploadFileAsync(memoryStream, standardFileName);
+
+                // 3. Trích xuất văn bản thô từ file để AI phân tích
                 string rawText = string.Empty;
                 try
                 {
-                    using (var stream = fileUpload.OpenReadStream())
-                    {
-                        rawText = await _nlpService.ExtractTextAsync(stream, ext);
-                    }
+                    memoryStream.Position = 0;
+                    rawText = await _nlpService.ExtractTextAsync(memoryStream, ext);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Lỗi khi trích xuất văn bản từ file");
+                }
+
+                // ============================================================
+                // CONSOLIDATED AI EVALUATION (Similarity + Rareness + Anti-Fraud)
+                // ============================================================
+                // Lấy các ứng viên tiềm năng trên TOÀN HỆ THỐNG
+                var globalCandidates = await _context.TaiLieus
+                    .OrderByDescending(t => t.NgayDang)
+                    .Take(30) // Tăng lên 30 tài liệu mới nhất toàn sàn để đối soát diện rộng
+                    .Select(t => new { t.MaTaiLieu, t.TieuDe, t.MoTa })
+                    .ToListAsync();
+
+                var listToCompare = new List<ExistingDocInfo>();
+                foreach (var doc in globalCandidates)
+                {
+                    string fingerprint = doc.TieuDe;
+                    if (!string.IsNullOrEmpty(doc.MoTa) && doc.MoTa.Contains("--- AI EVALUATION ---"))
+                    {
+                        try {
+                            var jsonPart = doc.MoTa.Split("--- AI EVALUATION ---").Last().Trim();
+                            var oldEval = System.Text.Json.JsonSerializer.Deserialize<RarenessEvaluation>(jsonPart);
+                            if (!string.IsNullOrEmpty(oldEval?.ContentFingerprint)) fingerprint = oldEval.ContentFingerprint;
+                        } catch { }
+                    }
+                    listToCompare.Add(new ExistingDocInfo { MaTaiLieu = doc.MaTaiLieu, TieuDe = doc.TieuDe, ContentFingerprint = fingerprint });
                 }
 
                 var loaiTl = _context.LoaiTaiLieus.Include(l => l.MaDqNavigation).FirstOrDefault(l => l.MaLtl == taiLieu.MaLoaiTl);
@@ -614,10 +668,23 @@ namespace HeThong_User.Controllers
                     taiLieu.Nxb ?? "Tác giả tự do",
                     taiLieu.NamXb,
                     diemYc,
-                    rawText
+                    rawText,
+                    listToCompare
                 );
 
-                // Lưu kết quả vào MoTa (dạng JSON) để không phá vỡ DB schema hiện tại
+                // Gắn thêm Hash vào Security_Note để lưu trữ phục vụ đối soát Hash lần sau
+                evaluation.Security_Note = (evaluation.Security_Note ?? "Normal") + $" | FileHash: {fileHash}";
+
+                // Kiểm tra chặn trùng lặp thô bạo từ kết quả AI (>= 50%)
+                if (evaluation.Similarity_Check?.Similarity_Percentage >= 50)
+                {
+                    TempData["ErrorMessage"] = $"TÀI LIỆU BỊ CHẶN: AI phát hiện trùng lặp nội dung ({evaluation.Similarity_Check.Similarity_Percentage}%). Trùng với: {evaluation.Similarity_Check.Matched_With_Document}";
+                    ViewBag.MaLoaiTl = _context.LoaiTaiLieus.ToList();
+                    ViewBag.Khoas    = _context.Khoas.ToList();
+                    return View(taiLieu);
+                }
+
+                // Lưu kết quả vào MoTa (dạng JSON)
                 string evalJson = System.Text.Json.JsonSerializer.Serialize(evaluation, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                 taiLieu.MoTa = (taiLieu.MoTa ?? "") + "\n\n--- AI EVALUATION ---\n" + evalJson;
 
@@ -629,11 +696,9 @@ namespace HeThong_User.Controllers
                 taiLieu.LuotTai        = 0;
                 taiLieu.LanTaiBan      = taiLieu.LanTaiBan ?? 1;
                 
-                // Cập nhật điểm dựa trên phân cấp Độ Quý (Yêu cầu mới: > Bình thường [>= 6.0] thì mới cộng thêm)
+                // Cập nhật điểm dựa trên RS (>= 6.0 mới cộng thêm)
                 double rarenessScore = evaluation.Evaluation.Final_Rareness_Score;
-                bool isAboveNormal = rarenessScore >= 6.0;
-                
-                if (isAboveNormal) {
+                if (rarenessScore >= 6.0) {
                     taiLieu.DiemYeuCau = (int)Math.Round(diemYc + rarenessScore);
                 } else {
                     taiLieu.DiemYeuCau = diemYc;
@@ -758,16 +823,20 @@ namespace HeThong_User.Controllers
                 HttpContext.Session.SetString("DiemTichLuy", sinhVien.DiemTichLuy?.ToString() ?? "0");
             }
 
-            // Ghi nhận lịch sử tải và tăng lượt tải
-            _context.LichSuTaiXuongs.Add(new LichSuTaiXuong
+            // Ghi nhận lịch sử tải và tăng lượt tải (Chỉ tính khi KHÔNG phải chủ sở hữu tải)
+            if (!isOwner)
             {
-                MaTaiLieu = id,
-                MaNd = maND,
-                NgayTai = DateTime.Now
-            });
-            taiLieu.LuotTai = (taiLieu.LuotTai ?? 0) + 1;
-            
-            await _context.SaveChangesAsync();
+                // Kiểm tra xem đã từng tải chưa để tránh spam lượt tải? Tùy logic, ở đây ta cứ ghi nhận
+                _context.LichSuTaiXuongs.Add(new LichSuTaiXuong
+                {
+                    MaTaiLieu = id,
+                    MaNd = maND,
+                    NgayTai = DateTime.Now
+                });
+                taiLieu.LuotTai = (taiLieu.LuotTai ?? 0) + 1;
+                
+                await _context.SaveChangesAsync();
+            }
 
             string sasUrl = _azureBlobService.GenerateSasLink(taiLieu.DuongDanFile, 5);
             if (string.IsNullOrEmpty(sasUrl))
