@@ -60,7 +60,7 @@ public partial class HeThongChiaSeTaiLieu_V1 : DbContext
         if (!optionsBuilder.IsConfigured)
         {
             // Fallback nếu không có options được inject (chỉ dùng khi test)
-            optionsBuilder.UseSqlServer("Data Source=THIEUQUANG;Initial Catalog=SHAREDOCS;Integrated Security=True;TrustServerCertificate=True");
+            optionsBuilder.UseSqlServer("Data Source=DESKTOPPPRE7540\\PHUNGVANVU;Initial Catalog=SHAREDOCS;Integrated Security=True;Encrypt=True;Trust Server Certificate=True");
         }
     }
 

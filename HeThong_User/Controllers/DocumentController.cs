@@ -236,6 +236,35 @@ namespace HeThong_User.Controllers
             return View();
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var maTaiKhoan = HttpContext.Session.GetString("MaTaiKhoan");
+            if (string.IsNullOrEmpty(maTaiKhoan))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var taiLieu = await _context.TaiLieus.FirstOrDefaultAsync(t => t.MaTaiLieu == id && t.MaNguoiDang == maTaiKhoan);
+            if (taiLieu == null)
+            {
+                return NotFound();
+            }
+
+            // Chỉ cho phép xóa khi tài liệu đang ở trạng thái "Chờ duyệt" và trong vòng 2 giờ kể từ ngày đăng
+            if (taiLieu.TrangThaiDuyet == "Chờ duyệt" && taiLieu.NgayDang.HasValue)
+            {
+                var timeDiff = (DateTime.Now - taiLieu.NgayDang.Value).TotalHours;
+                if (timeDiff <= 2.0)
+                {
+                    _context.TaiLieus.Remove(taiLieu);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return RedirectToAction("MyDocuments");
+        }
+
         // GET: Documents/GetMyUploads - Lấy tài liệu đã đăng
         [HttpGet]
         public async Task<IActionResult> GetMyUploads()
@@ -557,6 +586,14 @@ namespace HeThong_User.Controllers
         [HttpPost]
         public async Task<IActionResult> Upload(TaiLieu taiLieu, IFormFile fileUpload)
         {
+            if (taiLieu == null)
+            {
+                TempData["ErrorMessage"] = "Dữ liệu tải lên không hợp lệ hoặc kích thước file vượt quá giới hạn cho phép (Tối đa 50MB)!";
+                ViewBag.MaLoaiTl = _context.LoaiTaiLieus.ToList();
+                ViewBag.Khoas    = _context.Khoas.ToList();
+                return View(new TaiLieu());
+            }
+
             if (string.IsNullOrWhiteSpace(taiLieu.TieuDe) || taiLieu.TieuDe.Trim().Length < 10)
             {
                 TempData["ErrorMessage"] = "Tiêu đề quá ngắn! Vui lòng nhập ít nhất 10 ký tự.";

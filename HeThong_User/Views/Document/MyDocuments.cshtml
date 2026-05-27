@@ -1,5 +1,6 @@
 @{
     ViewData["Title"] = "Tài liệu cá nhân";
+    const int TimeDelay = 2; // Hằng số thời gian delay (giờ)
 }
 
 <style>
@@ -525,10 +526,46 @@
         const uploadDate = doc.ngayDang ? new Date(doc.ngayDang).toLocaleDateString('vi-VN') : 'N/A';
         
         let statusBadge = '';
+        let actionButtons = '';
         if (type === 'upload') {
             const status = doc.trangThaiDuyet || 'Chờ duyệt';
             const badgeClass = status === 'Đã duyệt' ? 'approved' : status === 'Từ chối' ? 'rejected' : 'pending';
             statusBadge = `<span class="document-badge ${badgeClass}">${status}</span>`;
+
+            // Kiểm tra logic thời gian ân hạn 2 giờ
+            const TimeDelay = @TimeDelay; // Nhận hằng số từ Razor
+            let canEditOrDelete = false;
+
+            if (status === 'Chờ duyệt' && doc.ngayDang) {
+                const ngayDang = new Date(doc.ngayDang);
+                const bayGio = new Date();
+                const soGioTroiQua = (bayGio - ngayDang) / (1000 * 60 * 60); // Tính số giờ đã trôi qua
+                if (soGioTroiQua <= TimeDelay) {
+                    canEditOrDelete = true;
+                }
+            }
+
+            if (canEditOrDelete) {
+                actionButtons = `
+                    <div class="mt-3 pt-2 border-top d-flex align-items-center justify-content-between flex-wrap gap-2" onclick="event.stopPropagation();">
+                        <span class="text-primary small fw-semibold"><i class="fa-solid fa-clock me-1"></i>Đang trong thời gian 2 giờ có thể chỉnh sửa/thu hồi</span>
+                        <div class="d-flex gap-2">
+                            <a href="/Document/Edit/${doc.maTaiLieu}" class="btn btn-sm btn-warning fw-bold px-3 rounded-pill">Sửa</a>
+                            <button class="btn btn-sm btn-danger fw-bold px-3 rounded-pill" onclick="deleteDocument('${doc.maTaiLieu}')">Xóa</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                actionButtons = `
+                    <div class="mt-3 pt-2 border-top d-flex align-items-center justify-content-between flex-wrap gap-2" onclick="event.stopPropagation();">
+                        <span class="text-muted small"><i class="fa-solid fa-lock me-1"></i>Đã hết thời gian chỉnh sửa/thu hồi</span>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-secondary fw-bold px-3 rounded-pill" disabled>Sửa</button>
+                            <button class="btn btn-sm btn-secondary fw-bold px-3 rounded-pill" disabled>Xóa</button>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         // Lọc bỏ JSON AI Evaluation khỏi mô tả
@@ -622,6 +659,7 @@
                     ${statusBadge}
                 </div>
 
+                ${actionButtons}
                 ${timeInfo}
             </div>
         `;
@@ -676,5 +714,11 @@
 
     function viewDocument(maTaiLieu) {
         window.location.href = '/Document/Details/' + maTaiLieu;
+    }
+
+    function deleteDocument(maTaiLieu) {
+        if (confirm('Bạn có chắc chắn muốn xóa/thu hồi tài liệu này không?')) {
+            window.location.href = '/Document/Delete/' + maTaiLieu;
+        }
     }
 </script>

@@ -1,4 +1,4 @@
-﻿@model HeThong_User.Models.BaoCaoViPham
+@model HeThong_User.Models.BaoCaoViPham
 
 @{
     ViewData["Title"] = "Báo cáo vi phạm";
@@ -22,19 +22,21 @@
 
                             <div class="mb-3">
                                 <label class="form-label fw-bold small">Lý do vi phạm</label>
-                                <select asp-for="LyDo" class="form-select py-2 border">
+                                <select asp-for="LyDo" id="LyDoSelect" class="form-select py-2 border">
                                     <option value="">-- Chọn lý do --</option>
-                                    <option>Tài liệu sai kiến thức</option>
-                                    <option>Vi phạm bản quyền</option>
-                                    <option>Nội dung nhạy cảm</option>
-                                    <option>Lỗi file, không mở được</option>
+                                    <option value="Tài liệu sai kiến thức">Tài liệu sai kiến thức</option>
+                                    <option value="Vi phạm bản quyền">Vi phạm bản quyền</option>
+                                    <option value="Nội dung nhạy cảm">Nội dung nhạy cảm</option>
+                                    <option value="Lỗi file, không mở được">Lỗi file, không mở được</option>
+                                    <option value="TuYeuCauGo">Khác (Tác giả yêu cầu gỡ bài khẩn cấp)</option>
                                 </select>
                             </div>
 
                             <div class="mb-4">
                                 <label class="form-label fw-bold small">Mô tả chi tiết</label>
                                 @* Sửa từ MoTa thành MoTaChiTiet *@
-                                <textarea asp-for="MoTaChiTiet" class="form-control border" rows="5" placeholder="Cung cấp thêm thông tin để Admin xử lý nhanh hơn..."></textarea>
+                                <textarea asp-for="MoTaChiTiet" id="MoTaChiTiet" class="form-control border" rows="5" placeholder="Cung cấp thêm thông tin để Admin xử lý nhanh hơn..."></textarea>
+                                <span id="error-message" class="text-danger small mt-1 d-block" style="display: none;"></span>
                             </div>
 
                             <button type="submit" class="btn btn-danger w-100 py-2 fw-bold mb-3" style="background-color: #d32f2f; border: none;">
@@ -45,6 +47,29 @@
                                 <a href="javascript:history.back()" class="text-decoration-none small text-muted">Hủy bỏ</a>
                             </div>
                         </form>
+
+                        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+                        <script>
+                            $(document).ready(function () {
+                                $('form').on('submit', function (e) {
+                                    var selectedReason = $('#LyDoSelect').val();
+                                    var description = $('#MoTaChiTiet').val().trim();
+                                    var errorSpan = $('#error-message');
+
+                                    // Reset thông báo lỗi
+                                    errorSpan.hide().text('');
+
+                                    if (selectedReason === 'TuYeuCauGo') {
+                                        if (description === '') {
+                                            e.preventDefault(); // Chặn hành động submit form
+                                            errorSpan.text('Vui lòng nhập rõ lý do và thông tin để tác giả yêu cầu gỡ bài khẩn cấp.').show();
+                                            $('#MoTaChiTiet').focus();
+                                            return false;
+                                        }
+                                    }
+                                });
+                            });
+                        </script>
                     </div>
                 </div>
             </div>
