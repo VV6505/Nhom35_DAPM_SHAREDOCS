@@ -536,11 +536,7 @@ namespace HeThong_User.Controllers
         public IActionResult Report(string id)
         {
             if (string.IsNullOrEmpty(id)) return NotFound();
-            var taiLieu = _context.TaiLieus.FirstOrDefault(t => t.MaTaiLieu == id);
-            if (taiLieu == null) return NotFound();
-            ViewBag.TenTaiLieu = taiLieu.TieuDe ?? "Không có tiêu đề";
-            ViewBag.MaTaiLieu  = id;
-            return View();
+            return RedirectToAction("RecentReports", new { id });
         }
 
         // POST: Documents/Report
