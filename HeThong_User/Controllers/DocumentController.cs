@@ -544,14 +544,27 @@ namespace HeThong_User.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Report(BaoCaoViPham baoCao)
         {
+            var maND = HttpContext.Session.GetString("MaTaiKhoan") ?? "SV001";
             var lastBC = _context.BaoCaoViPhams.OrderByDescending(b => b.MaBaoCao).FirstOrDefault();
             baoCao.MaBaoCao      = lastBC != null ? "BC" + (int.Parse(lastBC.MaBaoCao.Substring(2)) + 1).ToString("D3") : "BC001";
             baoCao.NgayBaoCao    = DateTime.Now;
             baoCao.TrangThaiXuLy = "Chờ xử lý";
-            baoCao.NguoiBaoCao   = HttpContext.Session.GetString("MaTaiKhoan") ?? "SV001";
+            baoCao.NguoiBaoCao   = maND;
 
             if (ModelState.IsValid)
             {
+                // Kiểm tra tác giả tự báo cáo bài của mình để ẩn ngay lập tức (Task 3)
+                var taiLieu = await _context.TaiLieus.FirstOrDefaultAsync(t => t.MaTaiLieu == baoCao.MaTaiLieu);
+                if (taiLieu != null)
+                {
+                    if (maND == taiLieu.MaNguoiDang)
+                    {
+                        taiLieu.CheDoHienThi = false; // Ẩn tài liệu ngay lập tức
+                        _context.Update(taiLieu);
+                        baoCao.LyDo = "Tác giả yêu cầu gỡ bài khẩn cấp"; // Thiết lập lại lý do chuẩn
+                    }
+                }
+
                 _context.BaoCaoViPhams.Add(baoCao);
                 var lastTB = _context.ThongBaos.OrderByDescending(t => t.MaTb).FirstOrDefault();
                 var nextTB = lastTB != null ? "TB" + (int.Parse(lastTB.MaTb.Substring(2)) + 1).ToString("D3") : "TB001";
