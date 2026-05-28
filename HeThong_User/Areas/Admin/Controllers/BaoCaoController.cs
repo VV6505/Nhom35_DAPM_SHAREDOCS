@@ -71,6 +71,16 @@ namespace HeThong_User.Areas.Admin.Controllers
             {
                 bc.TrangThaiXuLy = "Đã xử lý";
                 bc.NgayDuyet = DateTime.Now;
+
+                // Cập nhật trạng thái và ẩn tài liệu gốc
+                var taiLieu = await _context.TaiLieus.FindAsync(bc.MaTaiLieu);
+                if (taiLieu != null)
+                {
+                    taiLieu.CheDoHienThi = false; // Ẩn tài liệu
+                    taiLieu.TrangThaiDuyet = "Từ chối"; // Từ chối duyệt bài
+                    _context.Update(taiLieu);
+                }
+
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction("Index");
@@ -84,6 +94,16 @@ namespace HeThong_User.Areas.Admin.Controllers
             {
                 bc.TrangThaiXuLy = "Bỏ qua";
                 bc.NgayDuyet = DateTime.Now;
+
+                // Khôi phục hiển thị cho tài liệu gốc (Trường hợp bác bỏ báo cáo sai)
+                var taiLieu = await _context.TaiLieus.FindAsync(bc.MaTaiLieu);
+                if (taiLieu != null)
+                {
+                    taiLieu.CheDoHienThi = true; // Hiển thị lại tài liệu
+                    taiLieu.TrangThaiDuyet = "Đã duyệt"; // Đặt lại trạng thái duyệt
+                    _context.Update(taiLieu);
+                }
+
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction("Index");

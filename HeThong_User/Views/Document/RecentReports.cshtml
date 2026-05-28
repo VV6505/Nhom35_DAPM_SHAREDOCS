@@ -20,7 +20,7 @@
                         <h6 class="fw-bold mb-0 text-danger"><i class="fa-solid fa-paper-plane me-2"></i>Gửi báo cáo mới</h6>
                     </div>
                     <div class="card-body pt-0">
-                        <form asp-action="Report" method="post">
+                        <form asp-action="Report" method="post" id="reportForm">
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-muted">Tài liệu cần báo cáo</label>
                                 <select name="MaTaiLieu" class="form-select bg-light border-0 py-2" required>
@@ -142,14 +142,23 @@
             });
 
             // Logic kiểm tra lỗi (validation) khi Submit Form báo cáo
-            $('form').on('submit', function (e) {
+            $('#reportForm').on('submit', function (e) {
                 var selectedReason = $('#LyDoSelect').val();
-                var description = $('#MoTaChiTiet').val().trim();
+                var description = $('#MoTaChiTiet').val() ? $('#MoTaChiTiet').val().trim() : '';
                 var errorSpan = $('#error-message');
 
                 // Reset thông báo lỗi
                 errorSpan.hide().text('');
 
+                // Bắt buộc chọn Lý do
+                if (!selectedReason) {
+                    e.preventDefault();
+                    errorSpan.text('Vui lòng chọn lý do báo cáo vi phạm.').show();
+                    $('#LyDoSelect').focus();
+                    return false;
+                }
+
+                // Bắt buộc nhập mô tả khi chọn lý do "TuYeuCauGo"
                 if (selectedReason === 'TuYeuCauGo') {
                     if (description === '') {
                         e.preventDefault(); // Chặn hành động gửi form

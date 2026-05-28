@@ -10,6 +10,8 @@ namespace HeThong_User.Areas.Admin.Controllers
         private readonly HeThongChiaSeTaiLieu_V1 _context;
         private readonly HeThong_User.Services.AzureBlobService _azureBlobService;
 
+        private const int TimeDelay = 2; // Hằng số thời gian delay (giờ)
+
         public DuyetTaiLieuController(HeThongChiaSeTaiLieu_V1 context, HeThong_User.Services.AzureBlobService azureBlobService)
         {
             _context = context;
@@ -22,10 +24,12 @@ namespace HeThong_User.Areas.Admin.Controllers
             var adminId = HttpContext.Session.GetString("AdminId");
             var adminRole = HttpContext.Session.GetString("AdminRole");
 
+            var cutOffTime = DateTime.Now.AddHours(-TimeDelay);
             var query = _context.TaiLieus
                 .Include(t => t.MaMonHocNavigation)
                     .ThenInclude(m => m!.MaNganhNavigation)
                         .ThenInclude(n => n!.MaKhoaNavigation)
+                .Where(t => t.NgayDang == null || t.NgayDang < cutOffTime) // Ẩn tài liệu trong vòng 2 giờ ân hạn
                 .AsQueryable();
 
             // Phân quyền hiển thị: Cán bộ khoa chỉ thấy bài của khoa mình, Admin thấy bài từ khoa gửi lên
@@ -119,6 +123,7 @@ namespace HeThong_User.Areas.Admin.Controllers
                 else if (adminRole == "VT001") 
                 {
                     tl.TrangThaiDuyet = "Đã duyệt";
+                    tl.CheDoHienThi = true; // Khôi phục hiển thị/mở ẩn tài liệu khi được duyệt
 
                     // CỘNG ĐIỂM THƯỞNG CHO NGƯỜI ĐĂNG (NẾU LÀ SINH VIÊN) - CHỈ KHI ADMIN PHÊ DUYỆT XONG
                     var uploader = await _context.SinhViens.FindAsync(tl.MaNguoiDang);

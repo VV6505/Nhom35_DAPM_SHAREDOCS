@@ -30,6 +30,7 @@
                     <th>Tài liệu bị báo cáo</th>
                     <th>Người báo cáo</th>
                     <th>Lý do</th>
+                    <th>Mô tả chi tiết</th>
                     <th>Ngày</th>
                     <th>Trạng thái</th>
                     <th>Thao tác</th>
@@ -46,6 +47,10 @@
                         {
                             nguoiBC = nguoiBCMap[bc.NguoiBaoCao];
                         }
+                        var isAuthor = !string.IsNullOrEmpty(bc.NguoiBaoCao) 
+                            && bc.MaTaiLieuNavigation != null 
+                            && bc.NguoiBaoCao == bc.MaTaiLieuNavigation.MaNguoiDang;
+
                         var badgeClass = bc.TrangThaiXuLy switch
                         {
                             "Đã xử lý" => "approved",
@@ -55,8 +60,19 @@
                         var badgeText = bc.TrangThaiXuLy ?? "Chờ xử lý";
                         <tr>
                             <td><strong>@tenTL</strong></td>
-                            <td>@nguoiBC</td>
+                            <td>
+                                @nguoiBC
+                                @if (isAuthor)
+                                {
+                                    <span class="badge" style="background-color: #d32f2f; color: white; font-size: 10px; padding: 3px 6px; border-radius: 4px; margin-left: 5px; font-weight: bold; display: inline-block;">
+                                        Chính chủ yêu cầu gỡ
+                                    </span>
+                                }
+                            </td>
                             <td>@(bc.LyDo ?? "—")</td>
+                            <td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="@bc.MoTaChiTiet">
+                                @(bc.MoTaChiTiet ?? "—")
+                            </td>
                             <td>@(bc.NgayBaoCao?.ToString("dd/MM") ?? "—")</td>
                             <td><span class="badge @badgeClass">@badgeText</span></td>
                             <td>
@@ -64,7 +80,7 @@
                                     @if (bc.TrangThaiXuLy == null || bc.TrangThaiXuLy == "Chờ xử lý")
                                     {
                                         <form method="post" asp-action="XuLyViPham" asp-route-id="@bc.MaBaoCao" style="display:inline;">
-                                            <button type="submit" class="btn btn-danger">Vi phạm</button>
+                                            <button type="submit" class="btn btn-danger">Xác nhận xi phạm</button>
                                         </form>
                                         <form method="post" asp-action="BoQua" asp-route-id="@bc.MaBaoCao" style="display:inline;">
                                             <button type="submit" class="btn btn-outline">Bỏ qua</button>
@@ -81,7 +97,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="6" class="empty">Chưa có báo cáo vi phạm nào</td></tr>
+                    <tr><td colspan="7" class="empty">Chưa có báo cáo vi phạm nào</td></tr>
                 }
             </tbody>
         </table>

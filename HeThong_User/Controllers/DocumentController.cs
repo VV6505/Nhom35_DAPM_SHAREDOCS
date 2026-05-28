@@ -551,6 +551,10 @@ namespace HeThong_User.Controllers
             baoCao.TrangThaiXuLy = "Chờ xử lý";
             baoCao.NguoiBaoCao   = maND;
 
+            ModelState.Remove("MaBaoCao");
+            ModelState.Remove("MaTaiLieuNavigation");
+            ModelState.Remove("NguoiBaoCaoNavigation");
+
             if (ModelState.IsValid)
             {
                 // Kiểm tra tác giả tự báo cáo bài của mình để ẩn ngay lập tức (Task 3)
@@ -578,7 +582,7 @@ namespace HeThong_User.Controllers
                     MaNguoiNhan = "ADMIN"
                 });
                 await _context.SaveChangesAsync();
-                return RedirectToAction("Details", new { id = baoCao.MaTaiLieu });
+                return RedirectToAction("RecentReports");
             }
             return RedirectToAction("RecentReports");
         }
