@@ -45,14 +45,14 @@ namespace HeThong_User.Areas.Admin.Controllers
                         && t.MaMonHocNavigation.MaNganhNavigation != null
                         && t.MaMonHocNavigation.MaNganhNavigation.MaKhoa == maKhoaCBK);
 
-                    if (string.IsNullOrEmpty(trangthai) || trangthai == "all")
+                    if (string.IsNullOrEmpty(trangthai))
                         query = query.Where(t => t.TrangThaiDuyet == "Chờ duyệt");
                 }
             }
             else if (adminRole == "VT001") 
             {
                 // Admin xử lý nốt các bài đã qua vòng duyệt của Khoa hoặc bài tự do
-                if (string.IsNullOrEmpty(trangthai) || trangthai == "all")
+                if (string.IsNullOrEmpty(trangthai))
                     query = query.Where(t => t.TrangThaiDuyet == "Chờ Admin duyệt" || t.TrangThaiDuyet == "Chờ duyệt");
             }
 
