@@ -90,7 +90,7 @@ namespace HeThong_User.Controllers
                         from tk in tkGroup.DefaultIfEmpty()
                         join sv in _context.SinhViens on tk.MaSv equals sv.MaSv into svGroup
                         from sv in svGroup.DefaultIfEmpty()
-                        where t.TrangThaiDuyet == "Đã duyệt"
+                        where t.TrangThaiDuyet == "Đã duyệt" && t.CheDoHienThi != false
                         select new
                         {
                             Data = t,
@@ -431,6 +431,21 @@ namespace HeThong_User.Controllers
 
             if (taiLieu == null) return NotFound();
 
+            var viewerRole = HttpContext.Session.GetString("LoaiNguoiDung");
+            var viewerMaND = viewerRole == "SinhVien" ? HttpContext.Session.GetString("MaSinhVien") : HttpContext.Session.GetString("MaGiangVien");
+
+            // Nếu tài liệu bị ẩn (CheDoHienThi == false), chỉ cho phép chính tác giả hoặc Admin/CBK truy cập
+            if (taiLieu.CheDoHienThi == false)
+            {
+                var maVaiTro = HttpContext.Session.GetString("MaVaiTro")?.Trim();
+                bool isAdminOrCbk = maVaiTro == "VT001" || maVaiTro == "VT004" || maVaiTro == "VT002";
+                
+                if (taiLieu.MaNguoiDang != viewerMaND && !isAdminOrCbk)
+                {
+                    return NotFound(); // Bảo vệ tài liệu bị ẩn khỏi người lạ truy cập trực tiếp
+                }
+            }
+
             var tkDang = _context.TaiKhoans.Include(tk => tk.MaSvNavigation).FirstOrDefault(tk => tk.MaTk == taiLieu.MaNguoiDang);
             ViewBag.NguoiDang = tkDang?.MaSvNavigation;
             ViewBag.TenKhoa   = taiLieu.MaMonHocNavigation?.MaNganhNavigation?.MaKhoaNavigation?.TenKhoa;
@@ -444,13 +459,10 @@ namespace HeThong_User.Controllers
                             .OrderByDescending(x => x.ThoiGian).ToList();
             ViewBag.Comments = comments;
 
-            var maND = HttpContext.Session.GetString("LoaiNguoiDung") == "SinhVien" ? HttpContext.Session.GetString("MaSinhVien") : HttpContext.Session.GetString("MaGiangVien");
-            ViewBag.IsSaved = !string.IsNullOrEmpty(maND) && _context.TLYeuThiches.Any(t => t.MaTl == id && t.MaNd == maND);
+            ViewBag.IsSaved = !string.IsNullOrEmpty(viewerMaND) && _context.TLYeuThiches.Any(t => t.MaTl == id && t.MaNd == viewerMaND);
 
             // Kiểm tra phân quyền hiển thị tài liệu đầy đủ hay ẩn bớt (Blur)
             bool isFullyVisible = false;
-            var viewerRole = HttpContext.Session.GetString("LoaiNguoiDung");
-            var viewerMaND = viewerRole == "SinhVien" ? HttpContext.Session.GetString("MaSinhVien") : HttpContext.Session.GetString("MaGiangVien");
 
             if (!string.IsNullOrEmpty(viewerMaND))
             {
