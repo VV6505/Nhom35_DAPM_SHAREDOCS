@@ -80,7 +80,7 @@
                                     @if (bc.TrangThaiXuLy == null || bc.TrangThaiXuLy == "Chờ xử lý")
                                     {
                                         <form method="post" asp-action="XuLyViPham" asp-route-id="@bc.MaBaoCao" style="display:inline;">
-                                            <button type="submit" class="btn btn-danger">Xác nhận xi phạm</button>
+                                            <button type="submit" class="btn btn-danger">Xác nhận vi phạm</button>
                                         </form>
                                         <form method="post" asp-action="BoQua" asp-route-id="@bc.MaBaoCao" style="display:inline;">
                                             <button type="submit" class="btn btn-outline">Bỏ qua</button>
