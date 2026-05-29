@@ -82,26 +82,54 @@
                                     <tr style="font-size: 11px;">
                                         <th class="ps-4 text-secondary text-uppercase py-3">Tên tài liệu</th>
                                         <th class="text-secondary text-uppercase">Người đăng</th>
+                                        <th class="text-secondary text-uppercase">Thời gian đăng</th>
+                                        <th class="text-secondary text-uppercase">Thông tin xuất bản</th>
                                         <th class="text-secondary text-uppercase text-center">Lượt tải</th>
                                         <th class="text-end pe-4">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var item in Model)
-                                    {
-                                        <tr>
-                                            <td class="ps-4">
-                                                <div class="fw-bold text-dark mb-0">@item.Data.TieuDe</div>
-                                                <div class="text-muted small">Môn: @item.TenMon</div>
-                                            </td>
-                                            <td class="small text-muted">@item.TenNguoiDang</td>
-                                            <td class="text-center fw-bold text-primary">@item.Data.LuotTai</td>
-                                            <td class="text-end pe-4">
-                                                <a href="/Document/Details/@item.Data.MaTaiLieu" class="btn btn-primary btn-sm px-4 rounded-pill shadow-sm" style="background: #004d73;">Xem</a>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td class="ps-4">
+                <div class="fw-bold text-dark mb-0">@item.Data.TieuDe</div>
+                <div class="text-muted small">Môn: @item.TenMon</div>
+            </td>
+            <td class="small text-muted">@item.TenNguoiDang</td>
+            
+            <td class="small text-muted">
+                @if (item.Data.NgayDang != null)
+                {
+                    <span>
+                        <i class="fa-regular fa-clock me-1 text-secondary opacity-75"></i>
+                        @(((DateTime)item.Data.NgayDang).ToString("dd/MM/yyyy HH:mm"))
+                    </span>
+                }
+                else
+                {
+                    <span class="text-muted opacity-50">---</span>
+                }
+            </td>
+
+            <td class="small">
+                @if (item.Data.NamXb != null || !string.IsNullOrEmpty(item.Data.Nxb))
+                {
+                    <div class="text-dark fw-semibold">@(item.Data.Nxb ?? "Chưa rõ NXB")</div>
+                    <div class="text-muted small">@(item.Data.NamXb != null ? "Năm XB: " + item.Data.NamXb : "")</div>
+                }
+                else
+                {
+                    <span class="badge bg-light text-secondary border rounded-pill px-2">Tài liệu nội bộ</span>
+                }
+            </td>
+            <td class="text-center fw-bold text-primary">@item.Data.LuotTai</td>
+            <td class="text-end pe-4">
+                <a href="/Document/Details/@item.Data.MaTaiLieu" class="btn btn-primary btn-sm px-4 rounded-pill shadow-sm" style="background: #004d73;">Xem</a>
+            </td>
+        </tr>
+    }
+</tbody>
                             </table>
                         </div>
                     </div>
