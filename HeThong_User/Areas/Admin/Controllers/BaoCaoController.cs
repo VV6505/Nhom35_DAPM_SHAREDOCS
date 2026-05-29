@@ -99,9 +99,14 @@ namespace HeThong_User.Areas.Admin.Controllers
                 var taiLieu = await _context.TaiLieus.FindAsync(bc.MaTaiLieu);
                 if (taiLieu != null)
                 {
-                    taiLieu.CheDoHienThi = true; // Hiển thị lại tài liệu
-                    taiLieu.TrangThaiDuyet = "Đã duyệt"; // Đặt lại trạng thái duyệt
-                    _context.Update(taiLieu);
+                    // Nếu KHÔNG PHẢI là tác giả tự yêu cầu gỡ khẩn cấp, khôi phục hiển thị (bác bỏ báo cáo sai của người khác)
+                    bool isSelfRequest = taiLieu.MaNguoiDang == bc.NguoiBaoCao || bc.LyDo == "Tác giả yêu cầu gỡ bài khẩn cấp";
+                    if (!isSelfRequest)
+                    {
+                        taiLieu.CheDoHienThi = true; // Hiển thị lại tài liệu
+                        taiLieu.TrangThaiDuyet = "Đã duyệt"; // Đặt lại trạng thái duyệt
+                        _context.Update(taiLieu);
+                    }
                 }
 
                 await _context.SaveChangesAsync();
