@@ -9,6 +9,21 @@ builder.Logging.SetMinimumLevel(LogLevel.Warning); // Chỉ hiển thị Warning
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Cấu hình giới hạn kích thước upload file (60MB để hỗ trợ file tối đa 50MB của người dùng)
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 62914560; // 60 MB
+});
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 62914560; // 60 MB
+});
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.MaxRequestBodySize = 62914560; // 60 MB
+});
+
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<HeThong_User.Services.AzureBlobService>();
 builder.Services.AddScoped<HeThong_User.Services.NLPService>();

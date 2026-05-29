@@ -90,7 +90,7 @@ namespace HeThong_User.Controllers
                         from tk in tkGroup.DefaultIfEmpty()
                         join sv in _context.SinhViens on tk.MaSv equals sv.MaSv into svGroup
                         from sv in svGroup.DefaultIfEmpty()
-                        where t.TrangThaiDuyet == "Đã duyệt"
+                        where t.TrangThaiDuyet == "Đã duyệt" && t.CheDoHienThi != false
                         select new
                         {
                             Data = t,
@@ -234,6 +234,35 @@ namespace HeThong_User.Controllers
             }
 
             return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var maTaiKhoan = HttpContext.Session.GetString("MaTaiKhoan");
+            if (string.IsNullOrEmpty(maTaiKhoan))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var taiLieu = await _context.TaiLieus.FirstOrDefaultAsync(t => t.MaTaiLieu == id && t.MaNguoiDang == maTaiKhoan);
+            if (taiLieu == null)
+            {
+                return NotFound();
+            }
+
+            // Chỉ cho phép xóa khi tài liệu đang ở trạng thái "Chờ duyệt" và trong vòng 2 giờ kể từ ngày đăng
+            if (taiLieu.TrangThaiDuyet == "Chờ duyệt" && taiLieu.NgayDang.HasValue)
+            {
+                var timeDiff = (DateTime.Now - taiLieu.NgayDang.Value).TotalHours;
+                if (timeDiff <= 2.0)
+                {
+                    _context.TaiLieus.Remove(taiLieu);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return RedirectToAction("MyDocuments");
         }
 
         // GET: Documents/GetMyUploads - Lấy tài liệu đã đăng
@@ -402,6 +431,21 @@ namespace HeThong_User.Controllers
 
             if (taiLieu == null) return NotFound();
 
+            var viewerRole = HttpContext.Session.GetString("LoaiNguoiDung");
+            var viewerMaND = viewerRole == "SinhVien" ? HttpContext.Session.GetString("MaSinhVien") : HttpContext.Session.GetString("MaGiangVien");
+
+            // Nếu tài liệu bị ẩn (CheDoHienThi == false), chỉ cho phép chính tác giả hoặc Admin/CBK truy cập
+            if (taiLieu.CheDoHienThi == false)
+            {
+                var maVaiTro = HttpContext.Session.GetString("MaVaiTro")?.Trim();
+                bool isAdminOrCbk = maVaiTro == "VT001" || maVaiTro == "VT004" || maVaiTro == "VT002";
+                
+                if (taiLieu.MaNguoiDang != viewerMaND && !isAdminOrCbk)
+                {
+                    return NotFound(); // Bảo vệ tài liệu bị ẩn khỏi người lạ truy cập trực tiếp
+                }
+            }
+
             var tkDang = _context.TaiKhoans.Include(tk => tk.MaSvNavigation).FirstOrDefault(tk => tk.MaTk == taiLieu.MaNguoiDang);
             ViewBag.NguoiDang = tkDang?.MaSvNavigation;
             ViewBag.TenKhoa   = taiLieu.MaMonHocNavigation?.MaNganhNavigation?.MaKhoaNavigation?.TenKhoa;
@@ -415,13 +459,10 @@ namespace HeThong_User.Controllers
                             .OrderByDescending(x => x.ThoiGian).ToList();
             ViewBag.Comments = comments;
 
-            var maND = HttpContext.Session.GetString("LoaiNguoiDung") == "SinhVien" ? HttpContext.Session.GetString("MaSinhVien") : HttpContext.Session.GetString("MaGiangVien");
-            ViewBag.IsSaved = !string.IsNullOrEmpty(maND) && _context.TLYeuThiches.Any(t => t.MaTl == id && t.MaNd == maND);
+            ViewBag.IsSaved = !string.IsNullOrEmpty(viewerMaND) && _context.TLYeuThiches.Any(t => t.MaTl == id && t.MaNd == viewerMaND);
 
             // Kiểm tra phân quyền hiển thị tài liệu đầy đủ hay ẩn bớt (Blur)
             bool isFullyVisible = false;
-            var viewerRole = HttpContext.Session.GetString("LoaiNguoiDung");
-            var viewerMaND = viewerRole == "SinhVien" ? HttpContext.Session.GetString("MaSinhVien") : HttpContext.Session.GetString("MaGiangVien");
 
             if (!string.IsNullOrEmpty(viewerMaND))
             {
@@ -507,11 +548,7 @@ namespace HeThong_User.Controllers
         public IActionResult Report(string id)
         {
             if (string.IsNullOrEmpty(id)) return NotFound();
-            var taiLieu = _context.TaiLieus.FirstOrDefault(t => t.MaTaiLieu == id);
-            if (taiLieu == null) return NotFound();
-            ViewBag.TenTaiLieu = taiLieu.TieuDe ?? "Không có tiêu đề";
-            ViewBag.MaTaiLieu  = id;
-            return View();
+            return RedirectToAction("RecentReports", new { id });
         }
 
         // POST: Documents/Report
@@ -519,14 +556,31 @@ namespace HeThong_User.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Report(BaoCaoViPham baoCao)
         {
+            var maND = HttpContext.Session.GetString("MaTaiKhoan") ?? "SV001";
             var lastBC = _context.BaoCaoViPhams.OrderByDescending(b => b.MaBaoCao).FirstOrDefault();
             baoCao.MaBaoCao      = lastBC != null ? "BC" + (int.Parse(lastBC.MaBaoCao.Substring(2)) + 1).ToString("D3") : "BC001";
             baoCao.NgayBaoCao    = DateTime.Now;
             baoCao.TrangThaiXuLy = "Chờ xử lý";
-            baoCao.NguoiBaoCao   = HttpContext.Session.GetString("MaTaiKhoan") ?? "SV001";
+            baoCao.NguoiBaoCao   = maND;
+
+            ModelState.Remove("MaBaoCao");
+            ModelState.Remove("MaTaiLieuNavigation");
+            ModelState.Remove("NguoiBaoCaoNavigation");
 
             if (ModelState.IsValid)
             {
+                // Kiểm tra tác giả tự báo cáo bài của mình để ẩn ngay lập tức (Task 3)
+                var taiLieu = await _context.TaiLieus.FirstOrDefaultAsync(t => t.MaTaiLieu == baoCao.MaTaiLieu);
+                if (taiLieu != null)
+                {
+                    if (maND == taiLieu.MaNguoiDang)
+                    {
+                        taiLieu.CheDoHienThi = false; // Ẩn tài liệu ngay lập tức
+                        _context.Update(taiLieu);
+                        baoCao.LyDo = "Tác giả yêu cầu gỡ bài khẩn cấp"; // Thiết lập lại lý do chuẩn
+                    }
+                }
+
                 _context.BaoCaoViPhams.Add(baoCao);
                 var lastTB = _context.ThongBaos.OrderByDescending(t => t.MaTb).FirstOrDefault();
                 var nextTB = lastTB != null ? "TB" + (int.Parse(lastTB.MaTb.Substring(2)) + 1).ToString("D3") : "TB001";
@@ -540,7 +594,7 @@ namespace HeThong_User.Controllers
                     MaNguoiNhan = "ADMIN"
                 });
                 await _context.SaveChangesAsync();
-                return RedirectToAction("Details", new { id = baoCao.MaTaiLieu });
+                return RedirectToAction("RecentReports");
             }
             return RedirectToAction("RecentReports");
         }
@@ -557,6 +611,14 @@ namespace HeThong_User.Controllers
         [HttpPost]
         public async Task<IActionResult> Upload(TaiLieu taiLieu, IFormFile fileUpload)
         {
+            if (taiLieu == null)
+            {
+                TempData["ErrorMessage"] = "Dữ liệu tải lên không hợp lệ hoặc kích thước file vượt quá giới hạn cho phép (Tối đa 50MB)!";
+                ViewBag.MaLoaiTl = _context.LoaiTaiLieus.ToList();
+                ViewBag.Khoas    = _context.Khoas.ToList();
+                return View(new TaiLieu());
+            }
+
             if (string.IsNullOrWhiteSpace(taiLieu.TieuDe) || taiLieu.TieuDe.Trim().Length < 10)
             {
                 TempData["ErrorMessage"] = "Tiêu đề quá ngắn! Vui lòng nhập ít nhất 10 ký tự.";

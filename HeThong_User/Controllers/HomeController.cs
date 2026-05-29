@@ -47,11 +47,11 @@ namespace HeThong_User.Controllers
             }
 
             // 1. Giữ nguyên các con số thống kê cho Header/Sidebar
-            ViewBag.TotalDocs = _context.TaiLieus.Count(t => t.TrangThaiDuyet == "Đã duyệt");
+            ViewBag.TotalDocs = _context.TaiLieus.Count(t => t.TrangThaiDuyet == "Đã duyệt" && t.CheDoHienThi != false);
             ViewBag.TotalUsers = _context.SinhViens.Count();
             ViewBag.TotalDownloads = _context.TaiLieus.Sum(t => t.LuotTai) ?? 0;
             ViewBag.TotalReports = _context.BaoCaoViPhams.Count(); // Thêm đếm báo cáo cho ô màu đỏ
-
+ 
             // 2. Lấy danh sách tài liệu cho Bảng tin
             // Lấy 10 tài liệu mới nhất kèm thông tin người đăng
             var newsfeedDocs = _context.TaiLieus
@@ -63,7 +63,7 @@ namespace HeThong_User.Controllers
                     .ThenInclude(bl => bl.MaNdNavigation)
                         .ThenInclude(tk => tk.MaSvNavigation)
                 .Include(t => t.DanhGia)
-                .Where(t => t.TrangThaiDuyet == "Đã duyệt") // Chuẩn hóa theo DB: Đã duyệt
+                .Where(t => t.TrangThaiDuyet == "Đã duyệt" && t.CheDoHienThi != false) // Chuẩn hóa theo DB: Đã duyệt và không bị ẩn
                 .OrderByDescending(t => t.NgayDang)
                 .Take(10)
                 .ToList();  

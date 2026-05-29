@@ -1,4 +1,4 @@
-﻿@model IEnumerable<HeThong_User.Models.BaoCaoViPham>
+@model IEnumerable<HeThong_User.Models.BaoCaoViPham>
 
 @{
     ViewData["Title"] = "Báo cáo & Lịch sử";
@@ -20,7 +20,7 @@
                         <h6 class="fw-bold mb-0 text-danger"><i class="fa-solid fa-paper-plane me-2"></i>Gửi báo cáo mới</h6>
                     </div>
                     <div class="card-body pt-0">
-                        <form asp-action="Report" method="post">
+                        <form asp-action="Report" method="post" id="reportForm">
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-muted">Tài liệu cần báo cáo</label>
                                 <select name="MaTaiLieu" class="form-select bg-light border-0 py-2" required>
@@ -37,17 +37,20 @@
 
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-muted">Lý do vi phạm</label>
-                                <select name="LyDo" class="form-select bg-light border-0 py-2">
-                                    <option>Vi phạm bản quyền</option>
-                                    <option>Nội dung sai kiến thức</option>
-                                    <option>File lỗi, không tải được</option>
-                                    <option>Nội dung nhạy cảm</option>
+                                <select name="LyDo" id="LyDoSelect" class="form-select bg-light border-0 py-2">
+                                    <option value="">-- Chọn lý do --</option>
+                                    <option value="Vi phạm bản quyền">Vi phạm bản quyền</option>
+                                    <option value="Nội dung sai kiến thức">Nội dung sai kiến thức</option>
+                                    <option value="File lỗi, không tải được">File lỗi, không tải được</option>
+                                    <option value="Nội dung nhạy cảm">Nội dung nhạy cảm</option>
+                                    <option value="TuYeuCauGo">Khác (Tác giả yêu cầu gỡ bài khẩn cấp)</option>
                                 </select>
                             </div>
 
                             <div class="mb-4">
                                 <label class="form-label small fw-bold text-muted">Mô tả chi tiết</label>
-                                <textarea name="MoTaChiTiet" class="form-control bg-light border-0" rows="5" placeholder="Mô tả thêm để Admin dễ xử lý..."></textarea>
+                                <textarea name="MoTaChiTiet" id="MoTaChiTiet" class="form-control bg-light border-0" rows="5" placeholder="Mô tả thêm để Admin dễ xử lý..."></textarea>
+                                <span id="error-message" class="text-danger small mt-1 d-block" style="display: none;"></span>
                             </div>
 
                             <button type="submit" class="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-sm" style="background-color: #d32f2f; border: none;">
@@ -135,6 +138,34 @@
                         'background-color': '#87CEFA', // Màu xanh nhạt như trong ảnh
                         'border-left': '4px solid #004d73' // Thanh sọc đậm bên trái
                     });
+                }
+            });
+
+            // Logic kiểm tra lỗi (validation) khi Submit Form báo cáo
+            $('#reportForm').on('submit', function (e) {
+                var selectedReason = $('#LyDoSelect').val();
+                var description = $('#MoTaChiTiet').val() ? $('#MoTaChiTiet').val().trim() : '';
+                var errorSpan = $('#error-message');
+
+                // Reset thông báo lỗi
+                errorSpan.hide().text('');
+
+                // Bắt buộc chọn Lý do
+                if (!selectedReason) {
+                    e.preventDefault();
+                    errorSpan.text('Vui lòng chọn lý do báo cáo vi phạm.').show();
+                    $('#LyDoSelect').focus();
+                    return false;
+                }
+
+                // Bắt buộc nhập mô tả khi chọn lý do "TuYeuCauGo"
+                if (selectedReason === 'TuYeuCauGo') {
+                    if (description === '') {
+                        e.preventDefault(); // Chặn hành động gửi form
+                        errorSpan.text('Vui lòng nhập rõ lý do và thông tin để tác giả yêu cầu gỡ bài khẩn cấp.').show();
+                        $('#MoTaChiTiet').focus(); // Trỏ chuột vào ô nhập liệu
+                        return false;
+                    }
                 }
             });
         });

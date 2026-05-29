@@ -12,6 +12,8 @@ namespace HeThong_User.Areas.Admin.Controllers
         private readonly HeThongChiaSeTaiLieu_V1 _context;
         private readonly HeThong_User.Services.AzureBlobService _azureBlobService;
 
+        private const int TimeDelay = 2; // Hằng số thời gian delay (giờ)
+
         public CanBoKhoaController(HeThongChiaSeTaiLieu_V1 context, HeThong_User.Services.AzureBlobService azureBlobService)
         {
             _context = context;
@@ -35,13 +37,15 @@ namespace HeThong_User.Areas.Admin.Controllers
             var maKhoa = await GetMaKhoaCBK();
             if (string.IsNullOrEmpty(maKhoa)) return RedirectToAction("Login", "Auth", new { area = "" });
 
+            var cutOffTime = DateTime.Now.AddHours(-TimeDelay);
             var data = await _context.TaiLieus
                 .Include(t => t.MaMonHocNavigation)
                     .ThenInclude(m => m!.MaNganhNavigation)
                 .Where(t => t.MaMonHocNavigation != null 
                     && t.MaMonHocNavigation.MaNganhNavigation != null
                     && t.MaMonHocNavigation.MaNganhNavigation.MaKhoa == maKhoa
-                    && t.TrangThaiDuyet == "Chờ duyệt")
+                    && t.TrangThaiDuyet == "Chờ duyệt"
+                    && (t.NgayDang == null || t.NgayDang < cutOffTime))
                 .OrderByDescending(t => t.NgayDang)
                 .Select(t => new
                 {
@@ -115,6 +119,24 @@ namespace HeThong_User.Areas.Admin.Controllers
                 if (tl != null)
                 {
                     tl.TrangThaiDuyet = "Chờ Admin duyệt";
+
+                    // GỬI THÔNG BÁO CHO NGƯỜI ĐĂNG
+                    var lastTB_AP = _context.ThongBaos.OrderByDescending(t => t.MaTb).FirstOrDefault();
+                    var nextTB_AP = lastTB_AP != null 
+                        ? "TB" + (int.Parse(lastTB_AP.MaTb.Substring(2)) + 1).ToString("D3") 
+                        : "TB001";
+
+                    var thongBao = new ThongBao
+                    {
+                        MaTb = nextTB_AP,
+                        TieuDe = "Kết quả phê duyệt",
+                        NoiDung = $"Tài liệu '{tl.TieuDe}' đã được Khoa duyệt, chờ Admin xác nhận.",
+                        NgayTao = DateTime.Now,
+                        TrangThai = "Chưa đọc",
+                        MaNguoiNhan = tl.MaNguoiDang
+                    };
+                    _context.ThongBaos.Add(thongBao);
+
                     await _context.SaveChangesAsync();
                     return Ok();
                 }
@@ -134,6 +156,24 @@ namespace HeThong_User.Areas.Admin.Controllers
                 {
                     tl.TrangThaiDuyet = "Từ chối";
                     tl.LyDoTuChoi = reason;
+
+                    // GỬI THÔNG BÁO CHO NGƯỜI ĐĂNG
+                    var lastTB_AP = _context.ThongBaos.OrderByDescending(t => t.MaTb).FirstOrDefault();
+                    var nextTB_AP = lastTB_AP != null 
+                        ? "TB" + (int.Parse(lastTB_AP.MaTb.Substring(2)) + 1).ToString("D3") 
+                        : "TB001";
+
+                    var thongBao = new ThongBao
+                    {
+                        MaTb = nextTB_AP,
+                        TieuDe = "Kết quả phê duyệt",
+                        NoiDung = $"Rất tiếc, tài liệu '{tl.TieuDe}' bị từ chối. Lý do: {reason}",
+                        NgayTao = DateTime.Now,
+                        TrangThai = "Chưa đọc",
+                        MaNguoiNhan = tl.MaNguoiDang
+                    };
+                    _context.ThongBaos.Add(thongBao);
+
                     await _context.SaveChangesAsync();
                     return Ok();
                 }
