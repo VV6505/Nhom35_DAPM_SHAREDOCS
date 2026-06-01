@@ -53,11 +53,19 @@ namespace HeThong_User.Areas.Admin.Controllers
             {
                 // Admin xử lý nốt các bài đã qua vòng duyệt của Khoa hoặc bài tự do
                 if (string.IsNullOrEmpty(trangthai))
-                    query = query.Where(t => t.TrangThaiDuyet == "Chờ Admin duyệt" || t.TrangThaiDuyet == "Chờ duyệt");
+                {
+                    query = query.Where(t => t.TrangThaiDuyet == "Chờ Admin duyệt" 
+                        || (t.TrangThaiDuyet == "Chờ duyệt" && (t.MaMonHocNavigation == null || t.MaMonHocNavigation.MaNganhNavigation == null)));
+                }
+                else if (trangthai == "Chờ duyệt")
+                {
+                    // Nếu chọn cụ thể "Chờ duyệt", chỉ hiện bài tự do không thuộc Khoa/Môn nào
+                    query = query.Where(t => t.TrangThaiDuyet == "Chờ duyệt" && (t.MaMonHocNavigation == null || t.MaMonHocNavigation.MaNganhNavigation == null));
+                }
             }
 
-            // Lọc trạng thái (nếu chọn cụ thể)
-            if (!string.IsNullOrEmpty(trangthai) && trangthai != "all")
+            // Lọc trạng thái (nếu chọn cụ thể và không phải là Chờ duyệt của Admin để tránh đè điều kiện trên)
+            if (!string.IsNullOrEmpty(trangthai) && trangthai != "all" && !(adminRole == "VT001" && trangthai == "Chờ duyệt"))
             {
                 query = query.Where(t => t.TrangThaiDuyet == trangthai);
             }
