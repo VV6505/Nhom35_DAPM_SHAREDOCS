@@ -659,14 +659,13 @@ namespace HeThong_User.Controllers
                 if (!string.IsNullOrEmpty(fileHash))
                 {
                     // Kiểm tra trùng lặp tệp tin tuyệt đối bằng mã băm (Hash)
-                    // Tìm trong trường MoTa (nơi lưu metadata ẩn và JSON AI)
                     var exactDuplicate = await _context.TaiLieus
-                        .Where(t => t.MoTa != null && (t.MoTa.Contains(fileHash) || EF.Functions.Like(t.MoTa, $"%[METADATA_HASH:{fileHash}]%")))
+                        .Where(t => t.MoTa != null && t.MoTa.Contains(fileHash))
                         .FirstOrDefaultAsync();
 
                     if (exactDuplicate != null)
                     {
-                        TempData["ErrorMessage"] = $"TÀI LIỆU BỊ CHẶN: Nội dung tệp này đã tồn tại trên hệ thống (Trùng với tài liệu: {exactDuplicate.TieuDe}). Vui lòng không upload lại cùng một nội dung file vật lý.";
+                        TempData["ErrorMessage"] = $"TÀI LIỆU BỊ CHẶN: File này đã tồn tại trên hệ thống (Trùng với tài liệu: {exactDuplicate.TieuDe}). Vui lòng không upload lại cùng một nội dung file vật lý.";
                         ViewBag.MaLoaiTl = _context.LoaiTaiLieus.ToList();
                         ViewBag.Khoas = _context.Khoas.ToList();
                         return View(taiLieu);
