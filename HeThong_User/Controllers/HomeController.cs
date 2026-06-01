@@ -37,6 +37,41 @@ namespace HeThong_User.Controllers
             return Json(new { success = true, data = notifications });
         }
 
+        [HttpPost]
+        public async Task<IActionResult> MarkAsRead(string id)
+        {
+            var userId = HttpContext.Session.GetString("MaTaiKhoan");
+            if (string.IsNullOrEmpty(userId)) return Json(new { success = false, message = "Chưa đăng nhập!" });
+
+            var notif = await _context.ThongBaos.FirstOrDefaultAsync(t => t.MaTb == id && t.MaNguoiNhan == userId);
+            if (notif != null)
+            {
+                notif.TrangThai = "Đã đọc";
+                _context.Update(notif);
+                await _context.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+
+            return Json(new { success = false, message = "Không tìm thấy thông báo!" });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> MarkAllAsRead()
+        {
+            var userId = HttpContext.Session.GetString("MaTaiKhoan");
+            if (string.IsNullOrEmpty(userId)) return Json(new { success = false, message = "Chưa đăng nhập!" });
+
+            var unreadNotifs = await _context.ThongBaos.Where(t => t.MaNguoiNhan == userId && t.TrangThai == "Chưa đọc").ToListAsync();
+            foreach (var notif in unreadNotifs)
+            {
+                notif.TrangThai = "Đã đọc";
+            }
+            _context.UpdateRange(unreadNotifs);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
         public IActionResult Index()
         {
             // Nếu là Admin hoặc Cán bộ khoa hoặc Giảng viên, tự động chuyển về trang quản trị
