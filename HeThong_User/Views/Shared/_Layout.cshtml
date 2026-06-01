@@ -28,7 +28,7 @@
                 <div class="notif-dropdown" id="notifDropdown">
                     <div class="notif-header">
                         <h4>Thông báo của bạn</h4>
-                        <a href="#" style="font-size: 11px;">Đã đọc tất cả</a>
+                        <a href="#" onclick="markAllNotificationsAsRead(event)" style="font-size: 11px;">Đã đọc tất cả</a>
                     </div>
                     <div class="notif-list">
                         <div class="p-4 text-center text-muted">Đang tải thông báo...</div>
@@ -474,7 +474,7 @@
                         list.innerHTML = '<div class="p-4 text-center text-muted">Không có thông báo mới</div>';
                     } else {
                         list.innerHTML = result.data.map(n => `
-                            <div class="notif-item ${n.trangThai === 'Chưa đọc' ? 'unread' : ''}">
+                            <div class="notif-item ${n.trangThai === 'Chưa đọc' ? 'unread' : ''}" data-id="${n.maTb}" onclick="markNotificationAsRead(event, '${n.maTb}')">
                                 ${n.trangThai === 'Chưa đọc' ? '<div class="notif-dot"></div>' : ''}
                                 <div class="notif-content">
                                     <div class="notif-title" style="font-weight: 600; font-size: 14px;">${n.tieuDe}</div>
@@ -488,6 +488,71 @@
             } catch (e) {
                 console.error("Lỗi load thông báo:", e);
             }
+        }
+
+        async function markNotificationAsRead(event, notifId) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            try {
+                const res = await fetch(`/Home/MarkAsRead?id=${notifId}`, { method: 'POST' });
+                const result = await res.json();
+                if (result.success) {
+                    const item = document.querySelector(`.notif-item[data-id="${notifId}"]`);
+                    if (item) {
+                        item.classList.remove('unread');
+                        const dot = item.querySelector('.notif-dot');
+                        if (dot) dot.style.display = 'none';
+                    }
+                    syncNotificationBadge();
+                }
+            } catch (e) {
+                console.error("Lỗi đánh dấu đã đọc:", e);
+            }
+        }
+
+        async function markAllNotificationsAsRead(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            try {
+                const res = await fetch('/Home/MarkAllAsRead', { method: 'POST' });
+                const result = await res.json();
+                if (result.success) {
+                    document.querySelectorAll('.notif-item.unread').forEach(item => {
+                        item.classList.remove('unread');
+                        const dot = item.querySelector('.notif-dot');
+                        if (dot) dot.style.display = 'none';
+                    });
+                    
+                    const bellCount = document.getElementById("bellCount");
+                    if (bellCount) {
+                        bellCount.textContent = "0";
+                        bellCount.style.display = "none";
+                    }
+                }
+            } catch (e) {
+                console.error("Lỗi đánh dấu đọc tất cả:", e);
+            }
+        }
+
+        async function syncNotificationBadge() {
+            try {
+                const res = await fetch('/Home/GetNotifications');
+                const result = await res.json();
+                if (result.success && result.data) {
+                    const count = result.data.filter(n => n.trangThai === "Chưa đọc").length;
+                    const bellCount = document.getElementById("bellCount");
+                    if (bellCount) {
+                        bellCount.textContent = count;
+                        bellCount.style.display = count > 0 ? "flex" : "none";
+                    }
+                }
+            } catch (e) {}
         }
 
         // Tự động load số lượng khi trang tải
