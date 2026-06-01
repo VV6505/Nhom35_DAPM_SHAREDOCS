@@ -658,13 +658,15 @@ namespace HeThong_User.Controllers
 
                 if (!string.IsNullOrEmpty(fileHash))
                 {
+                    // Kiểm tra trùng lặp tệp tin tuyệt đối bằng mã băm (Hash)
+                    // Tìm trong trường MoTa (nơi lưu metadata ẩn và JSON AI)
                     var exactDuplicate = await _context.TaiLieus
-                        .Where(t => t.MoTa != null && t.MoTa.Contains(fileHash))
+                        .Where(t => t.MoTa != null && (t.MoTa.Contains(fileHash) || EF.Functions.Like(t.MoTa, $"%[METADATA_HASH:{fileHash}]%")))
                         .FirstOrDefaultAsync();
 
                     if (exactDuplicate != null)
                     {
-                        TempData["ErrorMessage"] = $"TÀI LIỆU BỊ CHẶN: File này đã tồn tại trên hệ thống. Vui lòng không upload lại cùng một nội dung file vật lý (Dù khác tên hay khác môn).";
+                        TempData["ErrorMessage"] = $"TÀI LIỆU BỊ CHẶN: Nội dung tệp này đã tồn tại trên hệ thống (Trùng với tài liệu: {exactDuplicate.TieuDe}). Vui lòng không upload lại cùng một nội dung file vật lý.";
                         ViewBag.MaLoaiTl = _context.LoaiTaiLieus.ToList();
                         ViewBag.Khoas = _context.Khoas.ToList();
                         return View(taiLieu);
@@ -722,7 +724,9 @@ namespace HeThong_User.Controllers
                     listToCompare
                 );
 
-                evaluation.Security_Note = (evaluation.Security_Note ?? "Normal") + $" | FileHash: {fileHash}";
+                // Giữ nguyên Security_Note từ NLP Service để không làm hiển thị box vàng vô lý ở UI Details
+                if (evaluation.Security_Note == null) evaluation.Security_Note = "Normal";
+                evaluation.FileHash = fileHash;
 
                 if (evaluation.Similarity_Check?.Similarity_Percentage >= 50)
                 {
@@ -733,7 +737,8 @@ namespace HeThong_User.Controllers
                 }
 
                 string evalJson = System.Text.Json.JsonSerializer.Serialize(evaluation, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                taiLieu.MoTa = (taiLieu.MoTa ?? "") + "\n\n--- AI EVALUATION ---\n" + evalJson;
+                // Lưu metadata ẩn vào MoTa để hỗ trợ truy vấn nhanh và chống upload trùng file vật lý
+                taiLieu.MoTa = (taiLieu.MoTa ?? "") + "\n\n--- AI EVALUATION ---\n" + evalJson + $"\n[METADATA_HASH:{fileHash}]";
 
                 taiLieu.DuongDanFile = standardFileName;
                 taiLieu.LoaiFile = ext.Replace(".", "").ToUpper();

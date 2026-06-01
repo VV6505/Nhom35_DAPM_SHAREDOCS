@@ -252,6 +252,7 @@ Final_Rareness_Score = (Điểm_Yếu_Tố_1 * 0.35) + (Điểm_Yếu_Tố_2 * 0
         public EvaluationScores Evaluation { get; set; }
         public string Classification { get; set; }
         public string Security_Note { get; set; }
+        public string FileHash { get; set; }
         public string ContentFingerprint { get; set; } // Keep for potential future use or internal tracking
         public EvaluationReasoning Reasoning { get; set; }
     }

@@ -10,7 +10,7 @@ namespace HeThong_User.Areas.Admin.Controllers
         private readonly HeThongChiaSeTaiLieu_V1 _context;
         private readonly HeThong_User.Services.AzureBlobService _azureBlobService;
 
-        private const int TimeDelay = 2; // Hằng số thời gian delay (giờ)
+        private const double TimeDelay = 30.0 / 3600.0; // Hằng số thời gian delay (30 giây quy ra giờ)
 
         public DuyetTaiLieuController(HeThongChiaSeTaiLieu_V1 context, HeThong_User.Services.AzureBlobService azureBlobService)
         {
@@ -24,12 +24,12 @@ namespace HeThong_User.Areas.Admin.Controllers
             var adminId = HttpContext.Session.GetString("AdminId");
             var adminRole = HttpContext.Session.GetString("AdminRole");
 
-            var cutOffTime = DateTime.Now.AddHours(-TimeDelay);
+            var cutOffTime = DateTime.Now.AddSeconds(-30);
             var query = _context.TaiLieus
                 .Include(t => t.MaMonHocNavigation)
                     .ThenInclude(m => m!.MaNganhNavigation)
                         .ThenInclude(n => n!.MaKhoaNavigation)
-                .Where(t => t.NgayDang == null || t.NgayDang < cutOffTime) // Ẩn tài liệu trong vòng 2 giờ ân hạn
+                .Where(t => t.NgayDang == null || t.NgayDang < cutOffTime) // Ẩn tài liệu trong vòng 30 giây ân hạn
                 .AsQueryable();
 
             // Phân quyền hiển thị: Cán bộ khoa chỉ thấy bài của khoa mình, Admin thấy bài từ khoa gửi lên

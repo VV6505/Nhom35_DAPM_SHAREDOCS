@@ -9,7 +9,7 @@ namespace HeThong_Admin.Controllers
         private readonly HeThongChiaSeTaiLieu_V1 _context;
         private readonly HeThong_Admin.Services.AzureBlobService _azureBlobService;
 
-        private const int TimeDelay = 2; // Hằng số thời gian delay (giờ)
+        private const double TimeDelay = 30.0 / 3600.0; // Hằng số thời gian delay (30 giây quy ra giờ)
 
         public DuyetTaiLieuController(HeThongChiaSeTaiLieu_V1 context, HeThong_Admin.Services.AzureBlobService azureBlobService)
         {
@@ -23,13 +23,17 @@ namespace HeThong_Admin.Controllers
             var adminId = HttpContext.Session.GetString("AdminId");
             var adminRole = HttpContext.Session.GetString("AdminRole");
 
-            var cutOffTime = DateTime.Now.AddHours(-TimeDelay);
+            // Chuyển sang giây để chính xác tuyệt đối
+            var cutOffTime = DateTime.Now.AddSeconds(-30);
+            
             var query = _context.TaiLieus
                 .Include(t => t.MaMonHocNavigation)
                     .ThenInclude(m => m!.MaNganhNavigation)
                         .ThenInclude(n => n!.MaKhoaNavigation)
-                .Where(t => t.NgayDang == null || t.NgayDang < cutOffTime) // Ẩn tài liệu trong vòng 2 giờ ân hạn
                 .AsQueryable();
+
+            // Lọc thời gian ân hạn 30s
+            query = query.Where(t => t.NgayDang == null || t.NgayDang < cutOffTime);
 
             // Phân quyền hiển thị: Cán bộ khoa chỉ thấy bài của khoa mình, Admin thấy bài từ khoa gửi lên
             if (adminRole == "VT004" || adminRole == "VT002") 
@@ -52,7 +56,17 @@ namespace HeThong_Admin.Controllers
             {
                 // Admin xử lý nốt các bài đã qua vòng duyệt của Khoa hoặc bài tự do
                 if (string.IsNullOrEmpty(trangthai) || trangthai == "all")
+                {
                     query = query.Where(t => t.TrangThaiDuyet == "Chờ Admin duyệt" || t.TrangThaiDuyet == "Chờ duyệt");
+                }
+            }
+            else
+            {
+                // Nếu là vai trò khác hoặc không xác định, mặc định chỉ cho xem các bài đang chờ duyệt
+                if (string.IsNullOrEmpty(trangthai) || trangthai == "all")
+                {
+                    query = query.Where(t => t.TrangThaiDuyet == "Chờ Admin duyệt" || t.TrangThaiDuyet == "Chờ duyệt");
+                }
             }
 
             // Lọc trạng thái (nếu chọn cụ thể)

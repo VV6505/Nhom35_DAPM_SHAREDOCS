@@ -1,6 +1,6 @@
 @{
     ViewData["Title"] = "Tài liệu cá nhân";
-    const int TimeDelay = 2; // Hằng số thời gian delay (giờ)
+    const double TimeDelay = 30.0 / 3600.0; // Hằng số thời gian delay (30 giây quy ra giờ)
 }
 
 <style>
@@ -548,7 +548,7 @@
             if (canEditOrDelete) {
                 actionButtons = `
                     <div class="mt-3 pt-2 border-top d-flex align-items-center justify-content-between flex-wrap gap-2" onclick="event.stopPropagation();">
-                        <span class="text-primary small fw-semibold"><i class="fa-solid fa-clock me-1"></i>Đang trong thời gian 2 giờ có thể chỉnh sửa/thu hồi</span>
+                        <span class="text-primary small fw-semibold"><i class="fa-solid fa-clock me-1"></i>Đang trong thời gian 30 giây có thể chỉnh sửa/thu hồi</span>
                         <div class="d-flex gap-2">
                             <a href="/Document/Edit/${doc.maTaiLieu}" class="btn btn-sm btn-warning fw-bold px-3 rounded-pill">Sửa</a>
                             <button class="btn btn-sm btn-danger fw-bold px-3 rounded-pill" onclick="deleteDocument('${doc.maTaiLieu}')">Xóa</button>
